@@ -1,13 +1,34 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { signSessionToken } from './token.util';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
+  ) {}
+
+  private createSession(user: { id: string; name: string | null; email: string; role: 'CUSTOMER' | 'ADMIN' }) {
+    return {
+      user,
+      accessToken: signSessionToken(user, this.config.get<string>('JWT_SECRET') ?? 'change-me'),
+    };
+  }
 
   async register(dto: RegisterDto) {
+    const existing = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+      select: { id: true },
+    });
+
+    if (existing) {
+      throw new ConflictException('Email already exists');
+    }
+
     const user = await this.prisma.user.create({
       data: {
         name: dto.name,
@@ -24,10 +45,7 @@ export class AuthService {
       },
     });
 
-    return {
-      user,
-      accessToken: 'TODO: add JWT after password hashing is implemented',
-    };
+    return this.createSession(user);
   }
 
   async login(dto: LoginDto) {
@@ -38,13 +56,16 @@ export class AuthService {
         name: true,
         email: true,
         role: true,
+        password: true,
       },
     });
 
-    return {
-      user,
-      accessToken: 'TODO: validate password and sign JWT',
-    };
+    if (!user || user.password !== dto.password) {
+      throw new UnauthorizedException('Email or password is incorrect');
+    }
+
+    const { password: _password, ...safeUser } = user;
+
+    return this.createSession(safeUser);
   }
 }
-

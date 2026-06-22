@@ -7,32 +7,32 @@ type AdminSectionProps = {
 
 export function AdminSection({ title, description, columns, rows }: AdminSectionProps) {
   return (
-    <section className="space-y-5">
-      <div className="flex flex-col justify-between gap-4 border-b border-zinc-200 pb-5 md:flex-row md:items-end">
+    <section className="space-y-[20px]">
+      <div className="flex flex-col justify-between gap-[16px] border-b border-neutral-light pb-[20px] md:flex-row md:items-end">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-court">Admin</p>
-          <h1 className="mt-2 text-3xl font-black text-ink">{title}</h1>
-          <p className="mt-2 max-w-2xl text-sm text-zinc-600">{description}</p>
+          <p className="text-[12px] font-bold uppercase tracking-wide text-primary">Admin</p>
+          <h1 className="mt-[8px] text-[32px] font-bold leading-[32px] text-neutral-black">{title}</h1>
+          <p className="mt-[8px] max-w-2xl text-[14px] text-neutral-medium">{description}</p>
         </div>
-        <button className="w-fit rounded bg-ink px-4 py-2 text-sm font-bold text-white">Them moi</button>
+        <button className="btn-primary w-fit">Them moi</button>
       </div>
 
-      <div className="overflow-hidden rounded border border-zinc-200 bg-white">
-        <table className="w-full min-w-[680px] text-left text-sm">
-          <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
+      <div className="overflow-hidden rounded-card border border-neutral-light bg-white">
+        <table className="w-full min-w-[680px] text-left text-[14px]">
+          <thead className="bg-neutral-offwhite text-[12px] uppercase tracking-wide text-neutral-medium">
             <tr>
               {columns.map((column) => (
-                <th key={column} className="px-4 py-3 font-bold">
+                <th key={column} className="px-[16px] py-[12px] font-bold">
                   {column}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y divide-neutral-light">
             {rows.map((row) => (
-              <tr key={row.join('-')} className="text-zinc-700">
+              <tr key={row.join('-')} className="text-neutral-dark hover:bg-neutral-offwhite transition-colors">
                 {row.map((cell) => (
-                  <td key={cell} className="px-4 py-4">
+                  <td key={cell} className="px-[16px] py-[16px]">
                     {cell}
                   </td>
                 ))}

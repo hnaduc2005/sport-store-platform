@@ -2,26 +2,72 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  color: #101317;
-  background: #f7f7f4;
+@layer base {
+  :root {
+    color: #000000;
+    background: #ffffff;
+  }
+
+  body {
+    min-height: 100vh;
+    background: #ffffff;
+    font-family: Mulish, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    letter-spacing: 0;
+    line-height: 1.5;
+    color: #000000;
+  }
+
+  a {
+    @apply text-primary hover:text-primary-hover transition-colors;
+    text-decoration: none;
+  }
+
+  button, input, select, textarea {
+    font: inherit;
+    outline-color: #2F80ED;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply text-neutral-black;
+  }
+
+  h1 { @apply text-[40px] font-medium leading-[48px]; }
+  h2 { @apply text-[32px] font-bold leading-[32px]; }
+  h3 { @apply text-[24px] font-medium leading-[28.8px]; }
+  h4 { @apply text-[16px] font-medium leading-[19.2px]; }
+  
+  p { @apply text-[14px] font-normal leading-[21px]; }
 }
 
-* {
-  box-sizing: border-box;
-}
+@layer components {
+  /* Buttons */
+  .btn-primary {
+    @apply bg-primary text-white text-[16px] font-normal py-[10px] px-[20px] rounded-btn border-none h-[39px] leading-[16px] flex items-center justify-center hover:bg-primary-hover cursor-pointer transition-colors whitespace-nowrap;
+  }
 
-body {
-  min-height: 100vh;
-  background: #f7f7f4;
-  font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-}
+  .btn-secondary {
+    @apply bg-transparent text-white text-[16px] font-normal py-[10px] px-[20px] rounded-btn border border-white h-[39px] leading-[16px] flex items-center justify-center hover:bg-white/10 cursor-pointer transition-colors whitespace-nowrap;
+  }
 
-button,
-input,
-select,
-textarea {
-  font: inherit;
-}
+  .btn-ghost {
+    @apply bg-[#292929] text-black text-[16px] font-normal p-0 rounded-full h-[39px] w-[57px] hover:bg-neutral-dark flex items-center justify-center cursor-pointer transition-colors;
+  }
 
+  .btn-icon {
+    @apply bg-neutral-light text-transparent rounded-circle h-[44px] w-[44px] border border-neutral-light hover:bg-white hover:border-primary flex items-center justify-center cursor-pointer transition-colors;
+  }
+
+  /* Inputs */
+  .input-search {
+    @apply bg-white text-neutral-input text-[14px] py-[3px] px-[15px] rounded-full border border-neutral-input h-[45px] leading-[21px] focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all;
+  }
+
+  .input-form {
+    @apply bg-white text-[#495057] text-[16px] py-[6px] px-[12px] rounded-none border border-neutral-inputLight h-[46px] leading-[24px] focus:border-primary focus:outline-none transition-colors;
+  }
+
+  /* Card */
+  .card-product {
+    @apply bg-white text-black text-[14px] p-[10px_15px] rounded-card border border-neutral-border hover:shadow-lifted transition-shadow cursor-pointer;
+  }
+}

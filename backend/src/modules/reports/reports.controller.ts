@@ -1,7 +1,10 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, UseGuards } from '@nestjs/common';
+import { AuthGuard, Roles } from '../auth/auth.guard';
 import { ReportsService } from './reports.service';
 
 @Controller('reports')
+@UseGuards(AuthGuard)
+@Roles('ADMIN')
 export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
@@ -15,4 +18,3 @@ export class ReportsController {
     return this.reportsService.topProducts();
   }
 }
-

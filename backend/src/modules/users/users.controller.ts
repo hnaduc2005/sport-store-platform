@@ -1,7 +1,10 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { AuthGuard, Roles } from '../auth/auth.guard';
 import { UsersService } from './users.service';
 
 @Controller('users')
+@UseGuards(AuthGuard)
+@Roles('ADMIN')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
@@ -15,4 +18,3 @@ export class UsersController {
     return this.usersService.findOne(id);
   }
 }
-

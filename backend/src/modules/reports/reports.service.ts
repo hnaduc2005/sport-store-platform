@@ -6,13 +6,15 @@ export class ReportsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async salesSummary() {
-    const [orders, users, products] = await Promise.all([
+    const [orders, users, products, contacts, reviews] = await Promise.all([
       this.prisma.order.aggregate({
         _count: { _all: true },
         _sum: { total: true },
       }),
       this.prisma.user.count(),
       this.prisma.product.count(),
+      this.prisma.contactFeedback.count(),
+      this.prisma.review.count(),
     ]);
 
     return {
@@ -20,6 +22,8 @@ export class ReportsService {
       totalRevenue: orders._sum.total ?? 0,
       totalUsers: users,
       totalProducts: products,
+      totalContacts: contacts,
+      totalReviews: reviews,
     };
   }
 
@@ -39,4 +43,3 @@ export class ReportsService {
     });
   }
 }
-

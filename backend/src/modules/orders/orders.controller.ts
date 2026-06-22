@@ -1,5 +1,7 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { AuthGuard, Roles } from '../auth/auth.guard';
+import { CreateOrderDto } from './dto/create-order.dto';
+import { UpdateOrderDto } from './dto/update-order.dto';
 import { OrdersService } from './orders.service';
 
 @Controller('orders')
@@ -7,6 +9,8 @@ export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
   @Get()
+  @UseGuards(AuthGuard)
+  @Roles('ADMIN')
   findAll() {
     return this.ordersService.findAll();
   }
@@ -22,13 +26,14 @@ export class OrdersController {
   }
 
   @Post()
-  create(@Body() data: Prisma.OrderCreateInput) {
+  create(@Body() data: CreateOrderDto) {
     return this.ordersService.create(data);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() data: Prisma.OrderUpdateInput) {
+  @UseGuards(AuthGuard)
+  @Roles('ADMIN')
+  update(@Param('id') id: string, @Body() data: UpdateOrderDto) {
     return this.ordersService.update(id, data);
   }
 }
-
