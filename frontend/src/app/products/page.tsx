@@ -3,13 +3,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ProductCard } from '@/components/product-card';
 import { apiFetch, queryString } from '@/lib/api';
-import { brands as fallbackBrands, categories as fallbackCategories, products as fallbackProducts, type Brand, type Category, type Product } from '@/lib/mock-data';
+import type { Brand, Category, Product } from '@/lib/mock-data';
 import { effectivePrice, entitySlug } from '@/lib/format';
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState<Product[]>(fallbackProducts);
-  const [categories, setCategories] = useState<Category[]>(fallbackCategories);
-  const [brands, setBrands] = useState<Brand[]>(fallbackBrands);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filters, setFilters] = useState({
@@ -39,15 +39,15 @@ export default function ProductsPage() {
 
         if (active) {
           setProducts(apiProducts);
-          setCategories(apiCategories);
-          setBrands(apiBrands);
+          setCategories(apiCategories.filter((category) => category.isActive !== false));
+          setBrands(apiBrands.filter((brand) => brand.isActive !== false));
         }
       } catch (err) {
         if (active) {
-          setProducts(fallbackProducts);
-          setCategories(fallbackCategories);
-          setBrands(fallbackBrands);
-          setError('Đang hiển thị dữ liệu demo vì chưa kết nối được API.');
+          setProducts([]);
+          setCategories([]);
+          setBrands([]);
+          setError('Không tải được sản phẩm từ API. Vui lòng kiểm tra backend hoặc database.');
         }
       } finally {
         if (active) setLoading(false);

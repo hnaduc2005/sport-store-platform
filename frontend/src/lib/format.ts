@@ -1,4 +1,4 @@
-import type { Brand, Category, Product } from './mock-data';
+﻿import type { Brand, Category, Product } from './mock-data';
 
 export function toNumber(value: number | string | null | undefined) {
   if (value === null || value === undefined || value === '') return 0;
@@ -11,6 +11,24 @@ export function money(value: number | string | null | undefined) {
     currency: 'VND',
     maximumFractionDigits: 0,
   }).format(toNumber(value));
+}
+
+export function compactNumber(value: number | string | null | undefined) {
+  return new Intl.NumberFormat('vi-VN', { notation: 'compact', maximumFractionDigits: 1 }).format(toNumber(value));
+}
+
+export function percent(value: number | string | null | undefined) {
+  return `${toNumber(value).toFixed(1).replace('.0', '')}%`;
+}
+
+export function formatDate(value: string | Date | null | undefined) {
+  if (!value) return 'Chưa có';
+  return new Date(value).toLocaleDateString('vi-VN');
+}
+
+export function formatDateTime(value: string | Date | null | undefined) {
+  if (!value) return 'Chưa có';
+  return new Date(value).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
 export function entityName(entity: Brand | Category | string | undefined) {
@@ -62,6 +80,8 @@ export function statusLabel(status: string) {
     NEW: 'Mới',
     READ: 'Đã đọc',
     RESOLVED: 'Đã xử lý',
+    ADMIN: 'Quản trị',
+    CUSTOMER: 'Khách hàng',
   };
 
   return labels[status] ?? status;

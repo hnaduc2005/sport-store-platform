@@ -1,7 +1,7 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+﻿import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { AuthGuard, Roles } from '../auth/auth.guard';
 import { BrandsService } from './brands.service';
+import { SaveBrandDto, UpdateBrandDto } from './dto/save-brand.dto';
 
 @Controller('brands')
 export class BrandsController {
@@ -20,14 +20,14 @@ export class BrandsController {
   @Post()
   @UseGuards(AuthGuard)
   @Roles('ADMIN')
-  create(@Body() data: Prisma.BrandCreateInput) {
+  create(@Body() data: SaveBrandDto) {
     return this.brandsService.create(data);
   }
 
   @Patch(':id')
   @UseGuards(AuthGuard)
   @Roles('ADMIN')
-  update(@Param('id') id: string, @Body() data: Prisma.BrandUpdateInput) {
+  update(@Param('id') id: string, @Body() data: UpdateBrandDto) {
     return this.brandsService.update(id, data);
   }
 

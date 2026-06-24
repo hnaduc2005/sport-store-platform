@@ -5,10 +5,11 @@ const prisma = new PrismaClient();
 async function main() {
   const running = await prisma.category.upsert({
     where: { slug: 'running' },
-    update: {},
+    update: { isActive: true },
     create: {
       name: 'Running',
       slug: 'running',
+      isActive: true,
       description: 'Shoes, apparel, and accessories for daily running.',
       imageUrl:
         'https://images.unsplash.com/photo-1460353581641-37baddab0fa2?auto=format&fit=crop&w=1200&q=80',
@@ -17,10 +18,11 @@ async function main() {
 
   const training = await prisma.category.upsert({
     where: { slug: 'training' },
-    update: {},
+    update: { isActive: true },
     create: {
       name: 'Training',
       slug: 'training',
+      isActive: true,
       description: 'Durable gear for gym, cross-training, and team workouts.',
       imageUrl:
         'https://images.unsplash.com/photo-1517963879433-6ad2b056d712?auto=format&fit=crop&w=1200&q=80',
@@ -29,30 +31,33 @@ async function main() {
 
   const nike = await prisma.brand.upsert({
     where: { slug: 'nike' },
-    update: {},
+    update: { isActive: true },
     create: {
       name: 'Nike',
       slug: 'nike',
+      isActive: true,
       description: 'Performance sportswear and training products.',
     },
   });
 
   const adidas = await prisma.brand.upsert({
     where: { slug: 'adidas' },
-    update: {},
+    update: { isActive: true },
     create: {
       name: 'Adidas',
       slug: 'adidas',
+      isActive: true,
       description: 'Classic athletic footwear, clothing, and gear.',
     },
   });
 
   const basketball = await prisma.category.upsert({
     where: { slug: 'basketball' },
-    update: {},
+    update: { isActive: true },
     create: {
       name: 'Basketball',
       slug: 'basketball',
+      isActive: true,
       description: 'Basketball shoes, jerseys, balls, and court accessories.',
       imageUrl:
         'https://images.unsplash.com/photo-1519861531473-9200262188bf?auto=format&fit=crop&w=1200&q=80',
@@ -61,10 +66,11 @@ async function main() {
 
   const football = await prisma.category.upsert({
     where: { slug: 'football' },
-    update: {},
+    update: { isActive: true },
     create: {
       name: 'Football',
       slug: 'football',
+      isActive: true,
       description: 'Football boots, balls, and gear for turf and grass fields.',
       imageUrl:
         'https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?auto=format&fit=crop&w=1200&q=80',
@@ -73,10 +79,11 @@ async function main() {
 
   const accessories = await prisma.category.upsert({
     where: { slug: 'accessories' },
-    update: {},
+    update: { isActive: true },
     create: {
       name: 'Accessories',
       slug: 'accessories',
+      isActive: true,
       description: 'Gym bags, bottles, socks, yoga mats, and daily sport essentials.',
       imageUrl:
         'https://images.unsplash.com/photo-1591382386627-349b692688ff?auto=format&fit=crop&w=1200&q=80',
@@ -85,30 +92,33 @@ async function main() {
 
   const puma = await prisma.brand.upsert({
     where: { slug: 'puma' },
-    update: {},
+    update: { isActive: true },
     create: {
       name: 'Puma',
       slug: 'puma',
+      isActive: true,
       description: 'Modern sport lifestyle products.',
     },
   });
 
   const wilson = await prisma.brand.upsert({
     where: { slug: 'wilson' },
-    update: {},
+    update: { isActive: true },
     create: {
       name: 'Wilson',
       slug: 'wilson',
+      isActive: true,
       description: 'Ball sports equipment and accessories.',
     },
   });
 
   const underArmour = await prisma.brand.upsert({
     where: { slug: 'under-armour' },
-    update: {},
+    update: { isActive: true },
     create: {
       name: 'Under Armour',
       slug: 'under-armour',
+      isActive: true,
       description: 'Training apparel and durable sport accessories.',
     },
   });
@@ -117,6 +127,7 @@ async function main() {
     where: { slug: 'air-zoom-runner' },
     update: {
       name: 'Nike Air Zoom Runner',
+      shortDescription: 'Lightweight responsive running shoe for everyday training.',
       description: 'Lightweight running shoe with responsive cushioning for daily 5K and long runs.',
       price: '2890000',
       salePrice: '2490000',
@@ -127,6 +138,7 @@ async function main() {
       name: 'Nike Air Zoom Runner',
       slug: 'air-zoom-runner',
       sku: 'SHOE-NIKE-AZR',
+      shortDescription: 'Lightweight responsive running shoe for everyday training.',
       description: 'Lightweight running shoe with responsive cushioning for daily 5K and long runs.',
       price: '2890000',
       salePrice: '2490000',
@@ -150,6 +162,7 @@ async function main() {
     where: { slug: 'training-hoodie-pro' },
     update: {
       name: 'Training Hoodie Pro',
+      shortDescription: 'Breathable hoodie for warm-up, travel, and recovery.',
       description: 'Breathable hoodie for warm-up, recovery, and travel.',
       price: '990000',
       salePrice: '790000',
@@ -160,6 +173,7 @@ async function main() {
       name: 'Training Hoodie Pro',
       slug: 'training-hoodie-pro',
       sku: 'APP-ADI-HOODIE-PRO',
+      shortDescription: 'Breathable hoodie for warm-up, travel, and recovery.',
       description: 'Breathable hoodie for warm-up, recovery, and travel.',
       price: '990000',
       salePrice: '790000',
@@ -319,6 +333,7 @@ async function main() {
         name: product.name,
         sku: product.sku,
         description: product.description,
+        shortDescription: product.description,
         price: product.price,
         salePrice: product.salePrice,
         stock: product.stock,
@@ -333,6 +348,7 @@ async function main() {
         slug: product.slug,
         sku: product.sku,
         description: product.description,
+        shortDescription: product.description,
         price: product.price,
         salePrice: product.salePrice,
         stock: product.stock,

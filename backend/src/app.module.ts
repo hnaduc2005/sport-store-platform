@@ -13,6 +13,7 @@ import { ReviewsModule } from './modules/reviews/reviews.module';
 import { FavoritesModule } from './modules/favorites/favorites.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { ContactsModule } from './modules/contacts/contacts.module';
+import { MediaModule } from './modules/media/media.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { ContactsModule } from './modules/contacts/contacts.module';
     FavoritesModule,
     ReportsModule,
     ContactsModule,
+    MediaModule,
   ],
 })
 export class AppModule {}

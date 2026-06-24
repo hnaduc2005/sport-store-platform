@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { FormEvent, useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/api';
 import { averageRating, entityName, money, productImage, salePercent } from '@/lib/format';
-import { products as fallbackProducts, type Product } from '@/lib/mock-data';
+import type { Product } from '@/lib/mock-data';
 import { addToCart, getSession } from '@/lib/store';
 
 type ProductDetailPageProps = {
@@ -14,24 +14,37 @@ type ProductDetailPageProps = {
 };
 
 export default function ProductDetailPage({ params }: ProductDetailPageProps) {
-  const [product, setProduct] = useState<Product>(fallbackProducts.find((item) => item.slug === params.slug) ?? fallbackProducts[0]);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [message, setMessage] = useState('');
   const [reviewMessage, setReviewMessage] = useState('');
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
-  const discount = salePercent(product);
-  const avgRating = averageRating(product);
 
   useEffect(() => {
     let active = true;
 
+    setLoading(true);
+    setError('');
+    setMessage('');
+
     apiFetch<Product>(`/products/${params.slug}`)
       .then((data) => {
-        if (active) setProduct(data);
+        if (active) {
+          setProduct(data);
+          setQuantity(1);
+        }
       })
       .catch(() => {
-        if (active) setMessage('Đang hiển thị dữ liệu demo vì chưa kết nối được API.');
+        if (active) {
+          setProduct(null);
+          setError('Không tải được sản phẩm từ API hoặc sản phẩm không còn hoạt động.');
+        }
+      })
+      .finally(() => {
+        if (active) setLoading(false);
       });
 
     return () => {
@@ -40,12 +53,15 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
   }, [params.slug]);
 
   const handleAddToCart = () => {
+    if (!product) return;
     addToCart(product, quantity);
     setMessage('Đã thêm sản phẩm vào giỏ hàng.');
   };
 
   const handleReview = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!product) return;
+
     const session = getSession();
 
     if (!session) {
@@ -64,33 +80,62 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
         }),
       });
 
-      setProduct((value) => ({
-        ...value,
-        reviews: [savedReview, ...(value.reviews ?? [])],
-      }));
+      setProduct((value) => (value ? { ...value, reviews: [savedReview, ...(value.reviews ?? [])] } : value));
       setComment('');
       setReviewMessage('Cảm ơn bạn đã gửi đánh giá.');
     } catch {
-      setProduct((value) => ({
-        ...value,
-        reviews: [
-          {
-            id: `local-${Date.now()}`,
-            userId: session.user.id,
-            productId: value.id,
-            rating,
-            comment,
-            isVisible: true,
-            createdAt: new Date().toISOString(),
-            user: session.user,
-          },
-          ...(value.reviews ?? []),
-        ],
-      }));
+      setProduct((value) =>
+        value
+          ? {
+              ...value,
+              reviews: [
+                {
+                  id: `local-${Date.now()}`,
+                  userId: session.user.id,
+                  productId: value.id,
+                  rating,
+                  comment,
+                  isVisible: true,
+                  createdAt: new Date().toISOString(),
+                  user: session.user,
+                },
+                ...(value.reviews ?? []),
+              ],
+            }
+          : value,
+      );
       setComment('');
-      setReviewMessage('Đã lưu đánh giá ở chế độ demo.');
+      setReviewMessage('Đã lưu đánh giá tạm thời trên trình duyệt.');
     }
   };
+
+  if (loading) {
+    return (
+      <div className="grid gap-[32px] lg:grid-cols-[1fr_420px]">
+        <div className="aspect-[4/3] animate-pulse rounded-card bg-neutral-offwhite" />
+        <div className="space-y-[16px]">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <div key={index} className="h-[28px] animate-pulse rounded-standard bg-neutral-offwhite" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="rounded-card border border-dashed border-neutral-light bg-white p-[32px] text-center">
+        <p className="text-[20px] font-bold text-neutral-black">Không tìm thấy sản phẩm</p>
+        <p className="mt-[8px] text-[14px] text-neutral-medium">{error || 'Sản phẩm chưa được tạo hoặc đang bị ẩn trong trang admin.'}</p>
+        <Link href="/products" className="btn-primary mt-[20px] inline-flex">
+          Quay lại danh sách
+        </Link>
+      </div>
+    );
+  }
+
+  const discount = salePercent(product);
+  const avgRating = averageRating(product);
 
   return (
     <div className="space-y-[32px]">

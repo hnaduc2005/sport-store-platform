@@ -4,6 +4,7 @@ export type Category = {
   slug: string;
   description?: string;
   imageUrl?: string;
+  isActive?: boolean;
   _count?: { products: number };
 };
 
@@ -13,6 +14,7 @@ export type Brand = {
   slug: string;
   description?: string;
   logoUrl?: string;
+  isActive?: boolean;
   _count?: { products: number };
 };
 
@@ -38,6 +40,7 @@ export type Product = {
   slug: string;
   sku: string;
   description?: string;
+  shortDescription?: string;
   price: number | string;
   salePrice?: number | string | null;
   stock: number;

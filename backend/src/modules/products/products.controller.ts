@@ -1,5 +1,7 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+﻿import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { AuthGuard, Roles } from '../auth/auth.guard';
+import { AdminProductQueryDto } from './dto/admin-product-query.dto';
+import { BulkProductStatusDto } from './dto/bulk-product-status.dto';
 import { ProductQueryDto } from './dto/product-query.dto';
 import { SaveProductDto, UpdateProductDto } from './dto/save-product.dto';
 import { ProductsService } from './products.service';
@@ -11,6 +13,20 @@ export class ProductsController {
   @Get()
   findAll(@Query() query: ProductQueryDto) {
     return this.productsService.findAll(query);
+  }
+
+  @Get('admin/list')
+  @UseGuards(AuthGuard)
+  @Roles('ADMIN')
+  findAdminAll(@Query() query: AdminProductQueryDto) {
+    return this.productsService.findAdminAll(query);
+  }
+
+  @Get('admin/:id')
+  @UseGuards(AuthGuard)
+  @Roles('ADMIN')
+  findAdminOne(@Param('id') id: string) {
+    return this.productsService.findAdminOne(id);
   }
 
   @Get('featured')
@@ -28,6 +44,13 @@ export class ProductsController {
   @Roles('ADMIN')
   create(@Body() data: SaveProductDto) {
     return this.productsService.create(data);
+  }
+
+  @Patch('admin/bulk-status')
+  @UseGuards(AuthGuard)
+  @Roles('ADMIN')
+  bulkStatus(@Body() data: BulkProductStatusDto) {
+    return this.productsService.bulkStatus(data.ids, data.isActive);
   }
 
   @Patch(':id')

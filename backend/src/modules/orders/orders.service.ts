@@ -1,32 +1,86 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { DiscountType, Prisma } from '@prisma/client';
+import { DiscountType, OrderStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { OrderQueryDto } from './dto/order-query.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 
 @Injectable()
 export class OrdersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findAll() {
-    return this.prisma.order.findMany({
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        coupon: true,
-        items: {
-          include: {
-            product: true,
-            variant: true,
-          },
-        },
+  private readonly orderInclude = {
+    user: {
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
       },
-      orderBy: { createdAt: 'desc' },
+    },
+    coupon: true,
+    items: {
+      include: {
+        product: {
+          include: {
+            brand: true,
+            category: true,
+          },
+        },
+        variant: true,
+      },
+    },
+  } satisfies Prisma.OrderInclude;
+
+  findAll(query: OrderQueryDto = {}) {
+    const and: Prisma.OrderWhereInput[] = [];
+
+    if (query.q) {
+      and.push({
+        OR: [
+          { code: { contains: query.q, mode: 'insensitive' } },
+          { customerName: { contains: query.q, mode: 'insensitive' } },
+          { phone: { contains: query.q, mode: 'insensitive' } },
+          { address: { contains: query.q, mode: 'insensitive' } },
+          { user: { email: { contains: query.q, mode: 'insensitive' } } },
+          { user: { name: { contains: query.q, mode: 'insensitive' } } },
+        ],
+      });
+    }
+
+    if (query.status) {
+      and.push({ status: query.status });
+    }
+
+    if (query.paymentStatus) {
+      and.push({ paymentStatus: query.paymentStatus });
+    }
+
+    const where: Prisma.OrderWhereInput = and.length ? { AND: and } : {};
+    const page = Math.max(Number(query.page ?? 1), 1);
+    const limit = Math.min(Math.max(Number(query.limit ?? 10), 1), 100);
+
+    return this.prisma.$transaction(async (tx) => {
+      const [total, data] = await Promise.all([
+        tx.order.count({ where }),
+        tx.order.findMany({
+          where,
+          include: this.orderInclude,
+          orderBy: { createdAt: 'desc' },
+          skip: (page - 1) * limit,
+          take: limit,
+        }),
+      ]);
+
+      return {
+        data,
+        meta: {
+          total,
+          page,
+          limit,
+          pageCount: Math.max(Math.ceil(total / limit), 1),
+        },
+      };
     });
   }
 
@@ -41,20 +95,17 @@ export class OrdersService {
     });
   }
 
-  findOne(id: string) {
-    return this.prisma.order.findUnique({
+  async findOne(id: string) {
+    const order = await this.prisma.order.findUnique({
       where: { id },
-      include: {
-        user: true,
-        coupon: true,
-        items: {
-          include: {
-            product: true,
-            variant: true,
-          },
-        },
-      },
+      include: this.orderInclude,
     });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    return order;
   }
 
   async create(data: CreateOrderDto) {
@@ -199,25 +250,48 @@ export class OrdersService {
   }
 
   async update(id: string, data: UpdateOrderDto) {
-    const order = await this.prisma.order.findUnique({ where: { id }, select: { id: true } });
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        status: true,
+      },
+    });
 
     if (!order) {
       throw new NotFoundException('Order not found');
     }
 
+    if (data.status) {
+      this.validateStatusTransition(order.status, data.status);
+    }
+
     return this.prisma.order.update({
       where: { id },
       data,
-      include: {
-        items: true,
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-      },
+      include: this.orderInclude,
     });
+  }
+
+  private validateStatusTransition(current: OrderStatus, next: OrderStatus) {
+    if (current === next) return;
+
+    if (current === OrderStatus.DELIVERED || current === OrderStatus.CANCELLED) {
+      throw new BadRequestException('Delivered or cancelled orders cannot change status');
+    }
+
+    if (next === OrderStatus.CANCELLED) return;
+
+    const orderFlow = [
+      OrderStatus.PENDING,
+      OrderStatus.CONFIRMED,
+      OrderStatus.PROCESSING,
+      OrderStatus.SHIPPED,
+      OrderStatus.DELIVERED,
+    ];
+
+    if (orderFlow.indexOf(next) < orderFlow.indexOf(current)) {
+      throw new BadRequestException('Order status cannot move backward');
+    }
   }
 }

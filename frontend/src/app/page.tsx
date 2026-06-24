@@ -1,8 +1,11 @@
-import Link from 'next/link';
-import { ProductCard } from '@/components/product-card';
-import { categories, products } from '@/lib/mock-data';
+import { HomeClientPage } from './home-client';
 
 export default function HomePage() {
+  return <HomeClientPage />;
+}
+
+/*
+
   const featuredProducts = [...products].sort((first, second) => (second.sold ?? 0) - (first.sold ?? 0)).slice(0, 8);
 
   return (
@@ -113,3 +116,4 @@ export default function HomePage() {
     </div>
   );
 }
+*/

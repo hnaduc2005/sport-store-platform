@@ -1,5 +1,6 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+﻿import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { AuthGuard, Roles } from '../auth/auth.guard';
+import { ReportQueryDto } from './dto/report-query.dto';
 import { ReportsService } from './reports.service';
 
 @Controller('reports')
@@ -16,5 +17,15 @@ export class ReportsController {
   @Get('top-products')
   topProducts() {
     return this.reportsService.topProducts();
+  }
+
+  @Get('revenue-series')
+  revenueSeries(@Query() query: ReportQueryDto) {
+    return this.reportsService.revenueSeries(query);
+  }
+
+  @Get('dashboard')
+  dashboard(@Query() query: ReportQueryDto) {
+    return this.reportsService.dashboard(query);
   }
 }

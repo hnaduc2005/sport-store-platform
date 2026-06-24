@@ -1,97 +1,231 @@
-'use client';
+﻿'use client';
 
-import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AdminShell } from '@/components/admin-shell';
+import { AdminNotice, EmptyState, LoadingBlocks, StatusBadge } from '@/components/admin-ui';
 import { apiFetch } from '@/lib/api';
-import { money } from '@/lib/format';
-import { adminStats } from '@/lib/mock-data';
+import { compactNumber, formatDateTime, money } from '@/lib/format';
+import { demoContacts, demoOrders, products as fallbackProducts } from '@/lib/mock-data';
 
-const adminLinks = [
-  { href: '/admin/products', label: 'Sản phẩm' },
-  { href: '/admin/categories', label: 'Danh mục' },
-  { href: '/admin/brands', label: 'Thương hiệu' },
-  { href: '/admin/orders', label: 'Đơn hàng' },
-  { href: '/admin/reviews', label: 'Đánh giá' },
-  { href: '/admin/feedback', label: 'Feedback' },
-  { href: '/admin/users', label: 'Người dùng' },
-  { href: '/admin/reports', label: 'Báo cáo' },
-];
+type Period = 'day' | 'month';
+
+type DashboardOrder = {
+  id: string;
+  code: string;
+  status: string;
+  paymentStatus: string;
+  total: number | string;
+  customerName: string;
+  createdAt: string;
+  items?: Array<{ id: string }>;
+};
+
+type TopProduct = {
+  productId: string;
+  productName: string;
+  _sum: {
+    quantity: number | null;
+    total: number | string | null;
+  };
+};
+
+type RevenuePoint = {
+  key: string;
+  label: string;
+  revenue: number;
+  orders: number;
+};
+
+type DashboardData = {
+  summary: {
+    totalRevenue: number | string;
+    totalOrders: number;
+    totalUsers: number;
+    totalProducts: number;
+    pendingOrders: number;
+    newContacts: number;
+  };
+  recentOrders: DashboardOrder[];
+  topProducts: TopProduct[];
+  revenueSeries: RevenuePoint[];
+};
+
+function fallbackDashboard(period: Period): DashboardData {
+  return {
+    summary: {
+      totalRevenue: demoOrders.reduce((sum, order) => sum + Number(order.total), 0),
+      totalOrders: demoOrders.length,
+      totalUsers: 2,
+      totalProducts: fallbackProducts.length,
+      pendingOrders: demoOrders.filter((order) => order.status === 'PENDING').length,
+      newContacts: demoContacts.filter((contact) => contact.status === 'NEW').length,
+    },
+    recentOrders: demoOrders,
+    topProducts: fallbackProducts
+      .slice()
+      .sort((first, second) => (second.sold ?? 0) - (first.sold ?? 0))
+      .slice(0, 5)
+      .map((product) => ({
+        productId: product.id,
+        productName: product.name,
+        _sum: { quantity: product.sold ?? 0, total: Number(product.salePrice ?? product.price) * (product.sold ?? 0) },
+      })),
+    revenueSeries: Array.from({ length: period === 'day' ? 14 : 12 }).map((_, index) => ({
+      key: `demo-${index}`,
+      label: period === 'day' ? `${String(index + 1).padStart(2, '0')}/06` : `${String(index + 1).padStart(2, '0')}/2026`,
+      revenue: index % 3 === 0 ? 0 : 1200000 + index * 220000,
+      orders: index % 3 === 0 ? 0 : 2 + index,
+    })),
+  };
+}
 
 export default function AdminDashboardPage() {
-  const [stats, setStats] = useState(adminStats);
+  const [period, setPeriod] = useState<Period>('day');
+  const [data, setData] = useState<DashboardData>(() => fallbackDashboard('day'));
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    apiFetch<{
-      totalRevenue: number | string;
-      totalOrders: number;
-      totalUsers: number;
-      totalProducts: number;
-      totalContacts?: number;
-      totalReviews?: number;
-    }>('/reports/sales-summary')
-      .then((data) =>
-        setStats([
-          { label: 'Doanh thu', value: money(data.totalRevenue) },
-          { label: 'Đơn hàng', value: String(data.totalOrders) },
-          { label: 'Khách hàng', value: String(data.totalUsers) },
-          { label: 'Sản phẩm', value: String(data.totalProducts) },
-          { label: 'Feedback', value: String(data.totalContacts ?? 0) },
-          { label: 'Đánh giá', value: String(data.totalReviews ?? 0) },
-        ]),
-      )
-      .catch(() => setStats(adminStats));
-  }, []);
+    let active = true;
+
+    setLoading(true);
+    setError('');
+
+    apiFetch<DashboardData>(`/reports/dashboard?period=${period}`)
+      .then((payload) => {
+        if (active) setData(payload);
+      })
+      .catch(() => {
+        if (active) {
+          setData(fallbackDashboard(period));
+          setError('Không tải được dữ liệu dashboard từ API. Đang hiển thị dữ liệu demo để tham khảo giao diện.');
+        }
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [period]);
+
+  const metrics = useMemo(
+    () => [
+      { label: 'Doanh thu', value: money(data.summary.totalRevenue), hint: 'Tổng doanh thu ghi nhận' },
+      { label: 'Đơn hàng', value: String(data.summary.totalOrders), hint: 'Tất cả đơn hàng' },
+      { label: 'Khách hàng', value: String(data.summary.totalUsers), hint: 'Tài khoản trong hệ thống' },
+      { label: 'Sản phẩm', value: String(data.summary.totalProducts), hint: 'SKU đang quản lý' },
+      { label: 'Chờ xử lý', value: String(data.summary.pendingOrders), hint: 'Đơn cần xác nhận' },
+      { label: 'Feedback mới', value: String(data.summary.newContacts), hint: 'Phản hồi chưa đọc' },
+    ],
+    [data],
+  );
+
+  const maxRevenue = Math.max(...data.revenueSeries.map((point) => point.revenue), 1);
 
   return (
-    <AdminShell title="Dashboard" description="Tổng quan nhanh cho vận hành cửa hàng thể thao.">
-      <section className="grid gap-[24px] sm:grid-cols-2 xl:grid-cols-3">
-        {stats.map((stat) => {
-          let icon = null;
-          let trend = '';
-          let trendColor = '';
-          if (stat.label === 'Doanh thu') {
-            icon = <svg className="w-[24px] h-[24px] text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
-            trend = '+12.5%';
-            trendColor = 'text-[#0ea5e9] bg-[#e0f2fe]';
-          } else if (stat.label === 'Đơn hàng') {
-            icon = <svg className="w-[24px] h-[24px] text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>;
-            trend = '+5.2%';
-            trendColor = 'text-[#0ea5e9] bg-[#e0f2fe]';
-          } else if (stat.label === 'Khách hàng') {
-            icon = <svg className="w-[24px] h-[24px] text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>;
-            trend = '+18.1%';
-            trendColor = 'text-[#0ea5e9] bg-[#e0f2fe]';
-          } else if (stat.label === 'Sản phẩm') {
-            icon = <svg className="w-[24px] h-[24px] text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>;
-          } else {
-            icon = <svg className="w-[24px] h-[24px] text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
-          }
+    <AdminShell title="Dashboard" description="Tổng quan vận hành cửa hàng thể thao, đơn hàng, doanh thu và phản hồi khách hàng.">
+      {error ? <AdminNotice type="error">{error}</AdminNotice> : null}
 
-          return (
-            <div key={stat.label} className="rounded-card border border-neutral-border bg-white p-[24px] hover:shadow-lifted transition-shadow">
-              <div className="flex items-center justify-between">
-                <p className="text-[14px] font-bold text-neutral-medium">{stat.label}</p>
-                <div className="rounded-full bg-neutral-offwhite p-[8px]">
-                  {icon}
-                </div>
+      {loading ? (
+        <LoadingBlocks count={3} />
+      ) : (
+        <>
+          <section className="grid gap-[16px] sm:grid-cols-2 xl:grid-cols-3">
+            {metrics.map((metric) => (
+              <div key={metric.label} className="rounded-card border border-neutral-border bg-white p-[20px]">
+                <p className="text-[13px] font-bold text-neutral-medium">{metric.label}</p>
+                <p className="mt-[12px] truncate text-[30px] font-bold leading-[32px] text-neutral-black">{metric.value}</p>
+                <p className="mt-[8px] text-[13px] text-neutral-medium">{metric.hint}</p>
               </div>
-              <div className="mt-[16px] flex items-end gap-[12px]">
-                <p className="text-[32px] font-bold leading-[32px] text-neutral-black truncate">{stat.value}</p>
-                {trend ? <span className={`text-[12px] font-bold px-[8px] py-[4px] rounded-btn ${trendColor} mb-[2px] shrink-0`}>{trend}</span> : null}
+            ))}
+          </section>
+
+          <section className="grid gap-[24px] xl:grid-cols-[1.4fr_0.8fr]">
+            <div className="rounded-card border border-neutral-border bg-white p-[20px]">
+              <div className="flex flex-col gap-[12px] sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-[22px] font-bold leading-[26px] text-neutral-black">Doanh thu theo {period === 'day' ? 'ngày' : 'tháng'}</h2>
+                  <p className="mt-[4px] text-[14px] text-neutral-medium">Dữ liệu lấy từ đơn hàng không bị hủy.</p>
+                </div>
+                <select value={period} onChange={(event) => setPeriod(event.target.value as Period)} className="input-form w-full bg-white sm:w-[160px]">
+                  <option value="day">14 ngày</option>
+                  <option value="month">12 tháng</option>
+                </select>
+              </div>
+
+              {data.revenueSeries.length ? (
+                <div className="mt-[24px] flex h-[260px] items-end gap-[8px] overflow-x-auto border-b border-neutral-light pb-[12px]">
+                  {data.revenueSeries.map((point) => {
+                    const height = Math.max((point.revenue / maxRevenue) * 220, point.revenue ? 16 : 4);
+                    return (
+                      <div key={point.key} className="flex min-w-[42px] flex-1 flex-col items-center justify-end gap-[8px]">
+                        <span className="text-[11px] font-bold text-neutral-medium">{compactNumber(point.revenue)}</span>
+                        <div title={`${point.label}: ${money(point.revenue)} (${point.orders} đơn)`} className="w-full rounded-t-btn bg-primary" style={{ height }} />
+                        <span className="text-[11px] text-neutral-medium">{point.label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <EmptyState title="Chưa có dữ liệu doanh thu" description="Khi có đơn hàng, biểu đồ sẽ tự cập nhật." />
+              )}
+            </div>
+
+            <div className="rounded-card border border-neutral-border bg-white p-[20px]">
+              <h2 className="text-[22px] font-bold leading-[26px] text-neutral-black">Sản phẩm bán chạy</h2>
+              <div className="mt-[16px] grid gap-[12px]">
+                {data.topProducts.length ? (
+                  data.topProducts.slice(0, 6).map((product, index) => (
+                    <div key={product.productId} className="flex items-center justify-between gap-[12px] rounded-card border border-neutral-light p-[12px]">
+                      <div className="min-w-0">
+                        <p className="truncate font-bold text-neutral-black">#{index + 1} {product.productName}</p>
+                        <p className="text-[13px] text-neutral-medium">{product._sum.quantity ?? 0} sản phẩm</p>
+                      </div>
+                      <span className="text-[13px] font-bold text-primary">{money(product._sum.total)}</span>
+                    </div>
+                  ))
+                ) : (
+                  <EmptyState title="Chưa có sản phẩm bán chạy" />
+                )}
               </div>
             </div>
-          );
-        })}
-      </section>
-      <section className="grid gap-[24px] md:grid-cols-3">
-        {adminLinks.map((item) => (
-          <Link key={item.href} href={item.href} className="rounded-card border border-neutral-border bg-white p-[20px] font-bold text-[16px] text-neutral-black hover:border-primary hover:text-primary transition-colors flex items-center justify-between group">
-            {item.label}
-            <svg className="w-[20px] h-[20px] text-neutral-light group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
-          </Link>
-        ))}
-      </section>
+          </section>
+
+          <section className="rounded-card border border-neutral-border bg-white p-[20px]">
+            <h2 className="text-[22px] font-bold leading-[26px] text-neutral-black">Đơn hàng gần đây</h2>
+            {data.recentOrders.length ? (
+              <div className="mt-[16px] overflow-x-auto">
+                <table className="w-full min-w-[760px] text-left text-[14px]">
+                  <thead className="bg-neutral-offwhite text-[12px] uppercase text-neutral-medium">
+                    <tr>
+                      <th className="px-[16px] py-[12px]">Mã đơn</th>
+                      <th className="px-[16px] py-[12px]">Khách hàng</th>
+                      <th className="px-[16px] py-[12px]">Tổng tiền</th>
+                      <th className="px-[16px] py-[12px]">Trạng thái</th>
+                      <th className="px-[16px] py-[12px]">Ngày tạo</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-neutral-light">
+                    {data.recentOrders.map((order) => (
+                      <tr key={order.id} className="hover:bg-neutral-offwhite">
+                        <td className="px-[16px] py-[14px] font-bold text-neutral-black">{order.code}</td>
+                        <td className="px-[16px] py-[14px]">{order.customerName}</td>
+                        <td className="px-[16px] py-[14px] font-bold">{money(order.total)}</td>
+                        <td className="px-[16px] py-[14px]"><StatusBadge status={order.status} /></td>
+                        <td className="px-[16px] py-[14px] text-neutral-medium">{formatDateTime(order.createdAt)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="mt-[16px]"><EmptyState title="Chưa có đơn hàng" description="Đơn hàng mới sẽ xuất hiện tại đây." /></div>
+            )}
+          </section>
+        </>
+      )}
     </AdminShell>
   );
 }

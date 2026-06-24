@@ -1,6 +1,7 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+﻿import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { AuthGuard, Roles } from '../auth/auth.guard';
 import { ContactsService } from './contacts.service';
+import { ContactQueryDto } from './dto/contact-query.dto';
 import { SaveContactDto, UpdateContactDto } from './dto/save-contact.dto';
 
 @Controller('contacts')
@@ -10,8 +11,8 @@ export class ContactsController {
   @Get()
   @UseGuards(AuthGuard)
   @Roles('ADMIN')
-  findAll() {
-    return this.contactsService.findAll();
+  findAll(@Query() query: ContactQueryDto) {
+    return this.contactsService.findAll(query);
   }
 
   @Post()

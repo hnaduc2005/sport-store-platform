@@ -1,5 +1,46 @@
 import { Type } from 'class-transformer';
-import { ArrayNotEmpty, IsArray, IsBoolean, IsInt, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import {
+  ArrayNotEmpty,
+  IsArray,
+  IsBoolean,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Min,
+  ValidateNested,
+} from 'class-validator';
+
+export class SaveProductVariantDto {
+  @IsOptional()
+  @IsString()
+  id?: string;
+
+  @IsString()
+  name!: string;
+
+  @IsString()
+  sku!: string;
+
+  @IsOptional()
+  @IsString()
+  size?: string;
+
+  @IsOptional()
+  @IsString()
+  color?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  priceAdjustment?: number;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  stock!: number;
+}
 
 export class SaveProductDto {
   @IsString()
@@ -7,6 +48,10 @@ export class SaveProductDto {
 
   @IsString()
   slug!: string;
+
+  @IsOptional()
+  @IsString()
+  shortDescription?: string;
 
   @IsOptional()
   @IsString()
@@ -24,7 +69,7 @@ export class SaveProductDto {
   @Type(() => Number)
   @IsNumber()
   @Min(0)
-  salePrice?: number;
+  salePrice?: number | null;
 
   @Type(() => Number)
   @IsInt()
@@ -51,6 +96,12 @@ export class SaveProductDto {
 
   @IsString()
   brandId!: string;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SaveProductVariantDto)
+  variants?: SaveProductVariantDto[];
 }
 
 export class UpdateProductDto {
@@ -61,6 +112,10 @@ export class UpdateProductDto {
   @IsOptional()
   @IsString()
   slug?: string;
+
+  @IsOptional()
+  @IsString()
+  shortDescription?: string;
 
   @IsOptional()
   @IsString()
@@ -110,4 +165,10 @@ export class UpdateProductDto {
   @IsOptional()
   @IsString()
   brandId?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SaveProductVariantDto)
+  variants?: SaveProductVariantDto[];
 }

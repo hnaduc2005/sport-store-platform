@@ -1,5 +1,6 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+﻿import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { AuthGuard, Roles } from '../auth/auth.guard';
+import { ReviewQueryDto } from './dto/review-query.dto';
 import { SaveReviewDto, UpdateReviewDto } from './dto/save-review.dto';
 import { ReviewsService } from './reviews.service';
 
@@ -10,8 +11,8 @@ export class ReviewsController {
   @Get()
   @UseGuards(AuthGuard)
   @Roles('ADMIN')
-  findAll() {
-    return this.reviewsService.findAll();
+  findAll(@Query() query: ReviewQueryDto) {
+    return this.reviewsService.findAll(query);
   }
 
   @Get('product/:productId')
