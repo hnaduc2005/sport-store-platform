@@ -7,19 +7,32 @@ import { effectivePrice, money } from '@/lib/format';
 import { clearCart, getCart, getSession, saveLocalOrder, type CartItem } from '@/lib/store';
 import type { Order } from '@/lib/mock-data';
 
+const PAYMENT_METHODS = [
+  { value: 'COD', label: 'Thanh toán khi nhận hàng (COD)', icon: '🚚' },
+  { value: 'BANK_TRANSFER', label: 'Chuyển khoản ngân hàng', icon: '🏦' },
+];
+
+function FormRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="form-label">{label}</label>
+      <div className="mt-1.5">{children}</div>
+    </div>
+  );
+}
+
 export default function CheckoutPage() {
   const [items, setItems] = useState<CartItem[]>([]);
   const [form, setForm] = useState({
-    customerName: '',
-    phone: '',
-    address: '',
-    note: '',
-    couponCode: '',
-    paymentMethod: 'COD',
+    customerName: '', phone: '', address: '', note: '',
+    couponCode: '', paymentMethod: 'COD',
   });
   const [message, setMessage] = useState('');
+  const [messageType, setMessageType] = useState<'error' | 'info'>('error');
+  const [submitting, setSubmitting] = useState(false);
   const [createdOrder, setCreatedOrder] = useState<Order | null>(null);
-  const subtotal = useMemo(() => items.reduce((sum, item) => sum + effectivePrice(item.product) * item.quantity, 0), [items]);
+
+  const subtotal = useMemo(() => items.reduce((s, i) => s + effectivePrice(i.product) * i.quantity, 0), [items]);
   const shippingFee = subtotal >= 1500000 || subtotal === 0 ? 0 : 30000;
   const discount = form.couponCode.trim().toUpperCase() === 'SPORT10' ? Math.round(subtotal * 0.1) : 0;
   const total = Math.max(subtotal + shippingFee - discount, 0);
@@ -27,176 +40,226 @@ export default function CheckoutPage() {
   useEffect(() => {
     setItems(getCart());
     const session = getSession();
-    if (session?.user.name) {
-      setForm((value) => ({ ...value, customerName: session.user.name ?? '' }));
-    }
+    if (session?.user.name) setForm(v => ({ ...v, customerName: session.user.name ?? '' }));
   }, []);
 
-  const updateField = (field: keyof typeof form, value: string) => {
-    setForm((current) => ({ ...current, [field]: value }));
-  };
+  const set = (field: keyof typeof form, value: string) =>
+    setForm(c => ({ ...c, [field]: value }));
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!items.length) { setMessage('Giỏ hàng đang trống.'); setMessageType('error'); return; }
     const session = getSession();
-
-    if (!items.length) {
-      setMessage('Giỏ hàng đang trống.');
-      return;
-    }
-
-    if (!session) {
-      setMessage('Vui lòng đăng nhập trước khi đặt hàng.');
-      return;
-    }
-
+    if (!session) { setMessage('Vui lòng đăng nhập trước khi đặt hàng.'); setMessageType('error'); return; }
+    setSubmitting(true); setMessage('');
     try {
       const order = await apiFetch<Order>('/orders', {
         method: 'POST',
         body: JSON.stringify({
-          userId: session.user.id,
-          customerName: form.customerName,
-          phone: form.phone,
-          address: form.address,
-          note: form.note,
-          couponCode: form.couponCode,
+          userId: session.user.id, customerName: form.customerName, phone: form.phone,
+          address: form.address, note: form.note, couponCode: form.couponCode,
           paymentMethod: form.paymentMethod,
         }),
       });
-      clearCart();
-      setItems([]);
-      setCreatedOrder(order);
-      setMessage('Đặt hàng thành công.');
+      clearCart(); setItems([]); setCreatedOrder(order); setMessage('Đặt hàng thành công.');
     } catch {
       const localOrder: Order = {
-        id: `local-${Date.now()}`,
-        code: `SS-${Date.now().toString().slice(-6)}`,
-        status: 'PENDING',
-        paymentStatus: 'UNPAID',
-        paymentMethod: form.paymentMethod,
-        total,
-        customerName: form.customerName,
-        phone: form.phone,
-        address: form.address,
+        id: `local-${Date.now()}`, code: `SS-${Date.now().toString().slice(-6)}`,
+        status: 'PENDING', paymentStatus: 'UNPAID', paymentMethod: form.paymentMethod,
+        total, customerName: form.customerName, phone: form.phone, address: form.address,
         createdAt: new Date().toISOString(),
-        items: items.map((item) => ({
-          id: `${item.product.id}-${Date.now()}`,
-          productId: item.product.id,
-          productName: item.product.name,
-          unitPrice: effectivePrice(item.product),
-          quantity: item.quantity,
-          total: effectivePrice(item.product) * item.quantity,
+        items: items.map(i => ({
+          id: `${i.product.id}-${Date.now()}`, productId: i.product.id,
+          productName: i.product.name, unitPrice: effectivePrice(i.product),
+          quantity: i.quantity, total: effectivePrice(i.product) * i.quantity,
         })),
       };
-
-      saveLocalOrder(localOrder);
-      clearCart();
-      setItems([]);
-      setCreatedOrder(localOrder);
-      setMessage('Đã tạo đơn ở chế độ demo vì chưa kết nối được API.');
-    }
+      saveLocalOrder(localOrder); clearCart(); setItems([]); setCreatedOrder(localOrder);
+      setMessage('Đã tạo đơn ở chế độ demo (chưa kết nối API).'); setMessageType('info');
+    } finally { setSubmitting(false); }
   };
 
+  /* ── Order success ── */
   if (createdOrder) {
     return (
-      <section className="mx-auto max-w-2xl rounded-card border border-neutral-border bg-white p-[24px] text-center">
-        <p className="text-[12px] font-bold uppercase text-primary">Đặt hàng thành công</p>
-        <h1 className="mt-[8px] text-[32px] font-bold leading-[32px] text-neutral-black">Mã đơn {createdOrder.code}</h1>
-        <p className="mt-[12px] text-[16px] text-neutral-medium leading-[24px]">Cảm ơn bạn đã mua hàng. Đơn hàng đã được ghi nhận để theo dõi trong lịch sử đơn.</p>
-        <div className="mt-[24px] flex flex-wrap justify-center gap-[12px]">
-          <Link href="/orders" className="btn-primary">
-            Xem đơn hàng
-          </Link>
-          <Link href="/products" className="btn-secondary !text-neutral-black !border-neutral-input hover:!bg-neutral-offwhite">
-            Tiếp tục mua sắm
-          </Link>
+      <div className="mx-auto max-w-container px-4 sm:px-6 lg:px-8 py-16">
+        <div className="mx-auto max-w-lg text-center">
+          <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-success-light text-5xl mx-auto mb-6">✅</div>
+          <h1 className="text-3xl font-bold text-brand-black">Đặt hàng thành công!</h1>
+          <p className="mt-2 text-brand-muted">
+            Mã đơn hàng: <span className="font-bold text-brand-black font-mono">{createdOrder.code}</span>
+          </p>
+          {messageType === 'info' && message && (
+            <p className="mt-3 text-sm text-brand-muted bg-brand-offwhite rounded-lg px-4 py-3">{message}</p>
+          )}
+          <p className="mt-4 text-brand-muted">Cảm ơn bạn đã mua hàng. Chúng tôi sẽ liên hệ xác nhận sớm nhất.</p>
+          <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+            <Link href="/orders" className="btn-dark px-7 py-3 font-bold">Xem đơn hàng</Link>
+            <Link href="/products" className="btn-outline px-7 py-3 font-bold">Tiếp tục mua sắm</Link>
+          </div>
         </div>
-      </section>
+      </div>
     );
   }
 
   return (
-    <div className="grid gap-[32px] lg:grid-cols-[1fr_360px]">
-      <section>
-        <p className="text-[12px] font-bold uppercase text-primary">Thanh toán</p>
-        <h1 className="mt-[8px] text-[32px] font-bold leading-[32px] text-neutral-black">Thông tin giao hàng</h1>
-        <form onSubmit={handleSubmit} className="mt-[24px] grid gap-[16px] rounded-card border border-neutral-border bg-white p-[20px]">
-          <input
-            value={form.customerName}
-            onChange={(event) => updateField('customerName', event.target.value)}
-            required
-            className="input-form w-full"
-            placeholder="Họ tên"
-          />
-          <input
-            value={form.phone}
-            onChange={(event) => updateField('phone', event.target.value)}
-            required
-            className="input-form w-full"
-            placeholder="Số điện thoại"
-          />
-          <input
-            value={form.address}
-            onChange={(event) => updateField('address', event.target.value)}
-            required
-            className="input-form w-full"
-            placeholder="Địa chỉ"
-          />
-          <select
-            value={form.paymentMethod}
-            onChange={(event) => updateField('paymentMethod', event.target.value)}
-            className="input-form w-full bg-white"
-          >
-            <option value="COD">Thanh toán khi nhận hàng (COD)</option>
-            <option value="BANK_TRANSFER">Chuyển khoản ngân hàng</option>
-          </select>
-          <input
-            value={form.couponCode}
-            onChange={(event) => updateField('couponCode', event.target.value)}
-            className="input-form w-full"
-            placeholder="Mã giảm giá (SPORT10)"
-          />
-          <textarea
-            value={form.note}
-            onChange={(event) => updateField('note', event.target.value)}
-            className="min-h-[112px] rounded-none border border-neutral-inputLight px-[12px] py-[12px] text-[16px] text-[#495057] focus:border-primary focus:outline-none transition-colors w-full"
-            placeholder="Ghi chú"
-          />
-          {message ? <p className="text-[14px] font-bold text-alert-dark">{message}</p> : null}
-          <button className="btn-primary w-full py-[12px]">Đặt hàng</button>
-        </form>
-      </section>
-      <aside className="h-fit rounded-card border border-neutral-border bg-white p-[20px]">
-        <h2 className="text-[20px] font-medium leading-[24px] text-neutral-black">Xác nhận đơn hàng</h2>
-        <div className="mt-[16px] grid gap-[12px] text-[14px] text-neutral-medium">
-          {items.length ? (
-            items.map((item) => (
-              <div key={item.product.id} className="flex justify-between gap-[12px]">
-                <span>{item.product.name} x {item.quantity}</span>
-                <span>{money(effectivePrice(item.product) * item.quantity)}</span>
+    <div className="mx-auto max-w-container px-4 sm:px-6 lg:px-8 py-8">
+      {/* Header */}
+      <div className="mb-8">
+        <span className="section-label">Thanh toán</span>
+        <h1 className="section-title">Hoàn tất đơn hàng</h1>
+      </div>
+
+      <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
+        {/* ── Form ── */}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Section: Contact */}
+          <div className="form-section">
+            <h2 className="form-section-title">
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent text-white text-xs font-bold">1</span>
+              Thông tin người nhận
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormRow label="Họ và tên *">
+                <input value={form.customerName} onChange={e => set('customerName', e.target.value)} required className="input-form w-full" placeholder="Nguyễn Văn A" />
+              </FormRow>
+              <FormRow label="Số điện thoại *">
+                <input value={form.phone} onChange={e => set('phone', e.target.value)} required className="input-form w-full" placeholder="0901 234 567" type="tel" />
+              </FormRow>
+            </div>
+            <div className="mt-4">
+              <FormRow label="Địa chỉ giao hàng *">
+                <input value={form.address} onChange={e => set('address', e.target.value)} required className="input-form w-full" placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành" />
+              </FormRow>
+            </div>
+            <div className="mt-4">
+              <FormRow label="Ghi chú đơn hàng">
+                <textarea value={form.note} onChange={e => set('note', e.target.value)} className="textarea-form w-full" placeholder="Yêu cầu đặc biệt, thời gian giao..." rows={3} />
+              </FormRow>
+            </div>
+          </div>
+
+          {/* Section: Payment */}
+          <div className="form-section">
+            <h2 className="form-section-title">
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent text-white text-xs font-bold">2</span>
+              Phương thức thanh toán
+            </h2>
+            <div className="grid gap-3">
+              {PAYMENT_METHODS.map(pm => (
+                <label
+                  key={pm.value}
+                  className={`flex items-center gap-4 cursor-pointer rounded-xl border-2 p-4 transition-all ${
+                    form.paymentMethod === pm.value
+                      ? 'border-accent bg-accent-bg'
+                      : 'border-brand-light bg-white hover:border-accent/40'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value={pm.value}
+                    checked={form.paymentMethod === pm.value}
+                    onChange={e => set('paymentMethod', e.target.value)}
+                    className="accent-accent"
+                  />
+                  <span className="text-xl">{pm.icon}</span>
+                  <span className="font-semibold text-sm text-brand-black">{pm.label}</span>
+                </label>
+              ))}
+            </div>
+
+            {form.paymentMethod === 'BANK_TRANSFER' && (
+              <div className="mt-4 rounded-xl bg-info-light border border-info/20 p-5 space-y-2">
+                <p className="text-sm font-bold text-info-dark">Thông tin chuyển khoản:</p>
+                <div className="grid gap-1.5 text-sm">
+                  {[['Ngân hàng', 'Vietcombank'], ['Số tài khoản', '1234567890'], ['Chủ tài khoản', 'BIGSPORT STORE'], ['Nội dung', 'Thanh toan don hang']].map(([k, v]) => (
+                    <div key={k} className="flex justify-between">
+                      <span className="text-info-dark/70">{k}:</span>
+                      <span className="font-bold text-info-dark font-mono">{v}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            ))
-          ) : (
-            <p>Chưa có sản phẩm trong giỏ.</p>
+            )}
+          </div>
+
+          {/* Section: Coupon */}
+          <div className="form-section">
+            <h2 className="form-section-title">
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent text-white text-xs font-bold">3</span>
+              Mã giảm giá
+            </h2>
+            <div className="flex gap-3">
+              <input
+                value={form.couponCode}
+                onChange={e => set('couponCode', e.target.value.toUpperCase())}
+                className="input-form flex-1"
+                placeholder="Nhập mã giảm giá (thử SPORT10)"
+              />
+            </div>
+            {discount > 0 && (
+              <p className="mt-2 text-sm font-semibold text-success">✓ Áp dụng mã thành công! Giảm {money(discount)}</p>
+            )}
+          </div>
+
+          {message && (
+            <div className={`rounded-xl px-4 py-3 text-sm font-semibold ${messageType === 'error' ? 'bg-danger-light text-danger-dark' : 'bg-info-light text-info-dark'}`}>
+              {message}
+            </div>
           )}
-          <div className="flex justify-between border-t border-neutral-light pt-[12px]">
-            <span>Tạm tính</span>
-            <span>{money(subtotal)}</span>
+
+          <button disabled={submitting} className="btn-dark w-full py-4 text-base font-bold disabled:opacity-60">
+            {submitting ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                </svg>
+                Đang xử lý...
+              </span>
+            ) : `Đặt hàng — ${money(total)}`}
+          </button>
+        </form>
+
+        {/* ── Order summary ── */}
+        <aside className="h-fit rounded-xl border border-brand-light bg-white p-6 space-y-4 lg:sticky lg:top-24">
+          <h2 className="font-bold text-brand-black text-base">Xác nhận đơn hàng</h2>
+
+          <div className="space-y-3 max-h-60 overflow-y-auto scrollbar-thin pr-1">
+            {items.map(i => (
+              <div key={i.product.id} className="flex justify-between gap-3 text-sm">
+                <span className="text-brand-dark line-clamp-2 flex-1">{i.product.name} <span className="text-brand-muted">×{i.quantity}</span></span>
+                <span className="font-semibold text-brand-black whitespace-nowrap">{money(effectivePrice(i.product) * i.quantity)}</span>
+              </div>
+            ))}
           </div>
-          <div className="flex justify-between">
-            <span>Vận chuyển</span>
-            <span>{shippingFee ? money(shippingFee) : 'Miễn phí'}</span>
+
+          <div className="border-t border-brand-light pt-4 space-y-2.5 text-sm">
+            <div className="flex justify-between text-brand-muted">
+              <span>Tạm tính</span><span className="text-brand-dark font-medium">{money(subtotal)}</span>
+            </div>
+            <div className="flex justify-between text-brand-muted">
+              <span>Vận chuyển</span>
+              <span className={shippingFee === 0 ? 'text-success font-medium' : 'text-brand-dark font-medium'}>
+                {shippingFee === 0 ? 'Miễn phí' : money(shippingFee)}
+              </span>
+            </div>
+            {discount > 0 && (
+              <div className="flex justify-between text-success">
+                <span>Giảm giá</span><span className="font-medium">-{money(discount)}</span>
+              </div>
+            )}
+            <div className="flex justify-between font-bold text-brand-black text-lg border-t border-brand-light pt-3">
+              <span>Tổng cộng</span><span>{money(total)}</span>
+            </div>
           </div>
-          <div className="flex justify-between">
-            <span>Giảm giá</span>
-            <span className="text-primary">-{money(discount)}</span>
-          </div>
-          <div className="flex justify-between text-[16px] font-bold text-neutral-black">
-            <span>Tổng</span>
-            <span>{money(total)}</span>
-          </div>
-        </div>
-      </aside>
+
+          <p className="text-xs text-center text-brand-subtle pt-2">
+            🔒 Thông tin của bạn được bảo mật tuyệt đối
+          </p>
+        </aside>
+      </div>
     </div>
   );
 }

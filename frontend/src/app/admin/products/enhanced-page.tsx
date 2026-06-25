@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { AdminShell } from '@/components/admin-shell';
-import { AdminModal, AdminNotice, EmptyState, LoadingTable, StatusBadge, TableActionButton } from '@/components/admin-ui';
+import { AdminModal, AdminNotice, AdminTable, AdminToolbar, EmptyState, LoadingTable, StatusBadge, TableActionButton } from '@/components/admin-ui';
 import { ApiError, apiFetch, apiUpload, type PaginatedResponse, queryString } from '@/lib/api';
 import { entityName, money, productImage } from '@/lib/format';
 import type { Brand, Category, Product } from '@/lib/mock-data';
@@ -335,40 +335,45 @@ export function EnhancedAdminProductsPage() {
 
   return (
     <AdminShell title="Quản lý sản phẩm" description="Quản lý catalog, giá, tồn kho, ảnh upload, trạng thái và biến thể sản phẩm.">
-      <div className="grid gap-[16px] rounded-card border border-neutral-border bg-white p-[16px] lg:grid-cols-[1.5fr_repeat(4,minmax(140px,1fr))_auto]">
-        <input value={filters.q} onChange={(event) => setFilter({ q: event.target.value })} className="input-search w-full" placeholder="Tìm tên, SKU, mô tả..." />
-        <select value={filters.category} onChange={(event) => setFilter({ category: event.target.value })} className="input-form bg-white">
+      <AdminToolbar>
+        <div className="relative flex-1 min-w-[200px]">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input value={filters.q} onChange={(event) => setFilter({ q: event.target.value })} className="input-form pl-10 w-full" placeholder="Tìm tên, SKU, mô tả..." />
+        </div>
+        <select value={filters.category} onChange={(event) => setFilter({ category: event.target.value })} className="select-form w-full md:w-auto">
           <option value="">Tất cả danh mục</option>
           {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
         </select>
-        <select value={filters.brand} onChange={(event) => setFilter({ brand: event.target.value })} className="input-form bg-white">
+        <select value={filters.brand} onChange={(event) => setFilter({ brand: event.target.value })} className="select-form w-full md:w-auto">
           <option value="">Tất cả thương hiệu</option>
           {brands.map((brand) => <option key={brand.id} value={brand.id}>{brand.name}</option>)}
         </select>
-        <select value={filters.status} onChange={(event) => setFilter({ status: event.target.value })} className="input-form bg-white">
+        <select value={filters.status} onChange={(event) => setFilter({ status: event.target.value })} className="select-form w-full md:w-auto">
           <option value="all">Mọi trạng thái</option>
           <option value="active">Đang bán</option>
           <option value="inactive">Ẩn</option>
         </select>
-        <select value={filters.stockStatus} onChange={(event) => setFilter({ stockStatus: event.target.value })} className="input-form bg-white">
+        <select value={filters.stockStatus} onChange={(event) => setFilter({ stockStatus: event.target.value })} className="select-form w-full md:w-auto">
           <option value="all">Mọi tồn kho</option>
           <option value="in-stock">Còn nhiều</option>
           <option value="low-stock">Sắp hết</option>
           <option value="out-of-stock">Hết hàng</option>
         </select>
-        <button onClick={openCreate} className="btn-primary h-[46px]">Thêm</button>
-      </div>
+        <button onClick={openCreate} className="btn-primary shrink-0">Thêm</button>
+      </AdminToolbar>
 
-      <div className="flex flex-col justify-between gap-[12px] rounded-card border border-neutral-border bg-white p-[16px] md:flex-row md:items-center">
-        <div className="text-[14px] text-neutral-medium">
-          Đã chọn <b className="text-neutral-black">{selectedIds.length}</b> sản phẩm
-          {selectedProducts.length ? <span> ({selectedProducts.slice(0, 2).map((item) => item.name).join(', ')}{selectedProducts.length > 2 ? '...' : ''})</span> : null}
+      {selectedIds.length > 0 && (
+        <div className="flex flex-col justify-between gap-3 rounded-xl border border-brand-light bg-brand-offwhite/50 p-4 md:flex-row md:items-center mt-4">
+          <div className="text-sm text-brand-muted">
+            Đã chọn <b className="text-brand-black">{selectedIds.length}</b> sản phẩm
+            {selectedProducts.length ? <span> ({selectedProducts.slice(0, 2).map((item) => item.name).join(', ')}{selectedProducts.length > 2 ? '...' : ''})</span> : null}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button disabled={!selectedIds.length} onClick={() => updateSelectedStatus(false)} className="btn-outline px-3 py-1.5 text-xs bg-white">Ẩn đã chọn</button>
+            <button disabled={!selectedIds.length} onClick={() => updateSelectedStatus(true)} className="btn-primary px-3 py-1.5 text-xs">Hiện đã chọn</button>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-[8px]">
-          <button disabled={!selectedIds.length} onClick={() => updateSelectedStatus(false)} className="rounded-btn border border-neutral-light px-[12px] py-[8px] text-[13px] font-bold text-neutral-black disabled:opacity-50">Ẩn đã chọn</button>
-          <button disabled={!selectedIds.length} onClick={() => updateSelectedStatus(true)} className="rounded-btn border border-primary px-[12px] py-[8px] text-[13px] font-bold text-primary disabled:opacity-50">Hiện đã chọn</button>
-        </div>
-      </div>
+      )}
 
       {error ? <AdminNotice type="error">{error}</AdminNotice> : null}
       {message ? <AdminNotice type={message.startsWith('Đã') ? 'success' : 'error'}>{message}</AdminNotice> : null}
@@ -376,123 +381,114 @@ export function EnhancedAdminProductsPage() {
       {loading ? (
         <LoadingTable columns={9} />
       ) : products.length ? (
-        <div className="overflow-x-auto rounded-card border border-neutral-light bg-white">
-          <table className="w-full min-w-[1180px] text-left text-[14px]">
-            <thead className="bg-neutral-offwhite text-[12px] uppercase text-neutral-medium tracking-wide">
-              <tr>
-                <th className="px-[16px] py-[12px] font-bold"><input type="checkbox" checked={allSelected} onChange={(event) => setSelectedIds(event.target.checked ? products.map((product) => product.id) : [])} /></th>
-                <th className="px-[16px] py-[12px] font-bold">Sản phẩm</th>
-                <th className="px-[16px] py-[12px] font-bold">SKU</th>
-                <th className="px-[16px] py-[12px] font-bold">Danh mục</th>
-                <th className="px-[16px] py-[12px] font-bold">Thương hiệu</th>
-                <th className="px-[16px] py-[12px] font-bold">Giá</th>
-                <th className="px-[16px] py-[12px] font-bold">Tồn kho</th>
-                <th className="px-[16px] py-[12px] font-bold">Trạng thái</th>
-                <th className="px-[16px] py-[12px] font-bold">Thao tác</th>
+        <AdminTable minWidth={1180}>
+          <thead>
+            <tr>
+              <th className="w-12"><input type="checkbox" checked={allSelected} onChange={(event) => setSelectedIds(event.target.checked ? products.map((product) => product.id) : [])} className="rounded border-brand-light text-accent focus:ring-accent" /></th>
+              {['Sản phẩm', 'SKU', 'Danh mục', 'Thương hiệu', 'Giá', 'Tồn kho', 'Trạng thái', 'Thao tác'].map(h => <th key={h}>{h}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {products.map((product) => (
+              <tr key={product.id}>
+                <td>
+                  <input type="checkbox" checked={selectedIds.includes(product.id)} onChange={(event) => setSelectedIds((current) => event.target.checked ? [...current, product.id] : current.filter((id) => id !== product.id))} className="rounded border-brand-light text-accent focus:ring-accent" />
+                </td>
+                <td>
+                  <div className="flex items-center gap-3">
+                    <img src={productImage(product)} alt={product.name} className="h-12 w-12 rounded object-cover bg-brand-offwhite" />
+                    <div className="min-w-0">
+                      <p className="max-w-[260px] truncate font-bold text-brand-black">{product.name}</p>
+                      <p className="text-xs text-brand-muted">{product.variants?.length ?? 0} biến thể</p>
+                    </div>
+                  </div>
+                </td>
+                <td><span className="font-mono text-xs">{product.sku}</span></td>
+                <td>{entityName(product.category)}</td>
+                <td>{entityName(product.brand)}</td>
+                <td className="font-bold text-brand-black">{money(product.salePrice ?? product.price)}</td>
+                <td><StatusBadge status={product.stock <= 0 ? 'danger' : product.stock <= 10 ? 'warning' : 'active'}>{product.stock}</StatusBadge></td>
+                <td><StatusBadge status={product.isActive === false ? 'inactive' : 'active'}>{product.isActive === false ? 'Ẩn' : 'Đang bán'}</StatusBadge></td>
+                <td>
+                  <div className="flex gap-2">
+                    <TableActionButton onClick={() => openEdit(product)} tone="primary">{loadingEditId === product.id ? 'Đang tải...' : 'Sửa'}</TableActionButton>
+                    <TableActionButton onClick={() => removeProduct(product)} tone="danger">Xóa</TableActionButton>
+                  </div>
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-light">
-              {products.map((product) => (
-                <tr key={product.id} className="text-neutral-dark hover:bg-neutral-offwhite transition-colors">
-                  <td className="px-[16px] py-[16px]">
-                    <input type="checkbox" checked={selectedIds.includes(product.id)} onChange={(event) => setSelectedIds((current) => event.target.checked ? [...current, product.id] : current.filter((id) => id !== product.id))} />
-                  </td>
-                  <td className="px-[16px] py-[16px]">
-                    <div className="flex items-center gap-[12px]">
-                      <img src={productImage(product)} alt={product.name} className="h-[52px] w-[52px] rounded-card object-cover bg-neutral-offwhite" />
-                      <div className="min-w-0">
-                        <p className="max-w-[260px] truncate font-bold text-neutral-black">{product.name}</p>
-                        <p className="text-[12px] text-neutral-medium">{product.variants?.length ?? 0} biến thể</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-[16px] py-[16px]">{product.sku}</td>
-                  <td className="px-[16px] py-[16px]">{entityName(product.category)}</td>
-                  <td className="px-[16px] py-[16px]">{entityName(product.brand)}</td>
-                  <td className="px-[16px] py-[16px] font-bold text-neutral-black">{money(product.salePrice ?? product.price)}</td>
-                  <td className="px-[16px] py-[16px]"><StatusBadge status={product.stock <= 0 ? 'danger' : product.stock <= 10 ? 'low' : 'active'}>{product.stock}</StatusBadge></td>
-                  <td className="px-[16px] py-[16px]"><StatusBadge status={product.isActive === false ? 'inactive' : 'active'}>{product.isActive === false ? 'Ẩn' : 'Đang bán'}</StatusBadge></td>
-                  <td className="px-[16px] py-[16px]">
-                    <div className="flex gap-[8px]">
-                      <TableActionButton onClick={() => openEdit(product)} tone="primary">{loadingEditId === product.id ? 'Đang tải...' : 'Sửa'}</TableActionButton>
-                      <TableActionButton onClick={() => removeProduct(product)} tone="danger">Xóa</TableActionButton>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </AdminTable>
       ) : (
         <EmptyState title="Không có sản phẩm" description="Thử đổi bộ lọc hoặc thêm sản phẩm mới." />
       )}
 
-      <div className="flex flex-col justify-between gap-[12px] text-[14px] text-neutral-medium sm:flex-row sm:items-center">
-        <span>Trang {meta.page}/{meta.pageCount}, tổng {meta.total} sản phẩm</span>
-        <div className="flex gap-[8px]">
-          <button disabled={meta.page <= 1} onClick={() => setFilters((current) => ({ ...current, page: current.page - 1 }))} className="rounded-btn border border-neutral-light px-[12px] py-[8px] font-bold disabled:opacity-50">Trước</button>
-          <button disabled={meta.page >= meta.pageCount} onClick={() => setFilters((current) => ({ ...current, page: current.page + 1 }))} className="rounded-btn border border-neutral-light px-[12px] py-[8px] font-bold disabled:opacity-50">Sau</button>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-sm text-brand-muted">
+        <span>Trang {meta.page}/{meta.pageCount} · Tổng {meta.total} sản phẩm</span>
+        <div className="flex gap-2">
+          <button disabled={meta.page <= 1} onClick={() => setFilters((current) => ({ ...current, page: current.page - 1 }))} className="btn-outline px-4 py-2 text-sm disabled:opacity-40">← Trước</button>
+          <button disabled={meta.page >= meta.pageCount} onClick={() => setFilters((current) => ({ ...current, page: current.page + 1 }))} className="btn-outline px-4 py-2 text-sm disabled:opacity-40">Sau →</button>
         </div>
       </div>
 
       {modalOpen ? (
         <AdminModal title={mode === 'edit' ? 'Cập nhật sản phẩm' : 'Thêm sản phẩm'} description="Thông tin sản phẩm sẽ được lưu qua API quản trị." onClose={() => setModalOpen(false)}>
-          <form onSubmit={handleSubmit} className="grid gap-[20px]">
-            <div className="grid gap-[16px] md:grid-cols-2">
-              <label className="grid gap-[6px] text-[14px] font-bold text-neutral-black">Tên sản phẩm<input value={form.name} onChange={(event) => setForm((value) => ({ ...value, name: event.target.value, slug: value.slug || slugify(event.target.value) }))} className="input-form w-full" /></label>
-              <label className="grid gap-[6px] text-[14px] font-bold text-neutral-black">Slug<input value={form.slug} onChange={(event) => setForm((value) => ({ ...value, slug: slugify(event.target.value) }))} className="input-form w-full" /></label>
-              <label className="grid gap-[6px] text-[14px] font-bold text-neutral-black">SKU<input value={form.sku} onChange={(event) => setForm((value) => ({ ...value, sku: event.target.value }))} className="input-form w-full" /></label>
-              <label className="grid gap-[6px] text-[14px] font-bold text-neutral-black">Upload ảnh<input type="file" multiple accept="image/jpeg,image/png,image/webp" onChange={(event) => uploadImages(event.target.files)} className="input-form w-full bg-white" /><span className="text-[12px] font-normal text-neutral-medium">{uploading ? 'Đang upload...' : 'Hỗ trợ JPG, PNG, WebP, tối đa 5MB/ảnh.'}</span></label>
-              <label className="grid gap-[6px] text-[14px] font-bold text-neutral-black">Mô tả ngắn<textarea value={form.shortDescription} onChange={(event) => setForm((value) => ({ ...value, shortDescription: event.target.value }))} className="min-h-[92px] rounded-none border border-neutral-inputLight px-[12px] py-[10px] text-[14px]" /></label>
-              <label className="grid gap-[6px] text-[14px] font-bold text-neutral-black">Mô tả chi tiết<textarea value={form.description} onChange={(event) => setForm((value) => ({ ...value, description: event.target.value }))} className="min-h-[92px] rounded-none border border-neutral-inputLight px-[12px] py-[10px] text-[14px]" /></label>
-              <label className="grid gap-[6px] text-[14px] font-bold text-neutral-black">Giá<input value={form.price} onChange={(event) => setForm((value) => ({ ...value, price: event.target.value }))} className="input-form w-full" inputMode="numeric" /></label>
-              <label className="grid gap-[6px] text-[14px] font-bold text-neutral-black">Giá khuyến mãi<input value={form.salePrice} onChange={(event) => setForm((value) => ({ ...value, salePrice: event.target.value }))} className="input-form w-full" inputMode="numeric" /></label>
-              <label className="grid gap-[6px] text-[14px] font-bold text-neutral-black">Tồn kho tổng<input value={form.stock} onChange={(event) => setForm((value) => ({ ...value, stock: event.target.value }))} className="input-form w-full" inputMode="numeric" /></label>
-              <label className="grid gap-[6px] text-[14px] font-bold text-neutral-black">Trạng thái<select value={form.isActive ? 'active' : 'inactive'} onChange={(event) => setForm((value) => ({ ...value, isActive: event.target.value === 'active' }))} className="input-form w-full bg-white"><option value="active">Đang bán</option><option value="inactive">Ẩn</option></select></label>
-              <label className="grid gap-[6px] text-[14px] font-bold text-neutral-black">Danh mục<select value={form.categoryId} onChange={(event) => setForm((value) => ({ ...value, categoryId: event.target.value }))} className="input-form w-full bg-white"><option value="">Chọn danh mục</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
-              <label className="grid gap-[6px] text-[14px] font-bold text-neutral-black">Thương hiệu<select value={form.brandId} onChange={(event) => setForm((value) => ({ ...value, brandId: event.target.value }))} className="input-form w-full bg-white"><option value="">Chọn thương hiệu</option>{brands.map((brand) => <option key={brand.id} value={brand.id}>{brand.name}</option>)}</select></label>
+          <form onSubmit={handleSubmit} className="grid gap-5">
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="grid gap-1.5 text-sm font-bold text-brand-black">Tên sản phẩm<input value={form.name} onChange={(event) => setForm((value) => ({ ...value, name: event.target.value, slug: value.slug || slugify(event.target.value) }))} className="input-form w-full" /></label>
+              <label className="grid gap-1.5 text-sm font-bold text-brand-black">Slug<input value={form.slug} onChange={(event) => setForm((value) => ({ ...value, slug: slugify(event.target.value) }))} className="input-form w-full" /></label>
+              <label className="grid gap-1.5 text-sm font-bold text-brand-black">SKU<input value={form.sku} onChange={(event) => setForm((value) => ({ ...value, sku: event.target.value }))} className="input-form w-full" /></label>
+              <label className="grid gap-1.5 text-sm font-bold text-brand-black">Upload ảnh<input type="file" multiple accept="image/jpeg,image/png,image/webp" onChange={(event) => uploadImages(event.target.files)} className="input-form w-full bg-white pt-2" /><span className="text-xs font-normal text-brand-muted">{uploading ? 'Đang upload...' : 'Hỗ trợ JPG, PNG, WebP, tối đa 5MB/ảnh.'}</span></label>
+              <label className="grid gap-1.5 text-sm font-bold text-brand-black">Mô tả ngắn<textarea value={form.shortDescription} onChange={(event) => setForm((value) => ({ ...value, shortDescription: event.target.value }))} className="textarea-form" /></label>
+              <label className="grid gap-1.5 text-sm font-bold text-brand-black">Mô tả chi tiết<textarea value={form.description} onChange={(event) => setForm((value) => ({ ...value, description: event.target.value }))} className="textarea-form" /></label>
+              <label className="grid gap-1.5 text-sm font-bold text-brand-black">Giá<input value={form.price} onChange={(event) => setForm((value) => ({ ...value, price: event.target.value }))} className="input-form w-full" inputMode="numeric" /></label>
+              <label className="grid gap-1.5 text-sm font-bold text-brand-black">Giá khuyến mãi<input value={form.salePrice} onChange={(event) => setForm((value) => ({ ...value, salePrice: event.target.value }))} className="input-form w-full" inputMode="numeric" /></label>
+              <label className="grid gap-1.5 text-sm font-bold text-brand-black">Tồn kho tổng<input value={form.stock} onChange={(event) => setForm((value) => ({ ...value, stock: event.target.value }))} className="input-form w-full" inputMode="numeric" /></label>
+              <label className="grid gap-1.5 text-sm font-bold text-brand-black">Trạng thái<select value={form.isActive ? 'active' : 'inactive'} onChange={(event) => setForm((value) => ({ ...value, isActive: event.target.value === 'active' }))} className="select-form w-full"><option value="active">Đang bán</option><option value="inactive">Ẩn</option></select></label>
+              <label className="grid gap-1.5 text-sm font-bold text-brand-black">Danh mục<select value={form.categoryId} onChange={(event) => setForm((value) => ({ ...value, categoryId: event.target.value }))} className="select-form w-full"><option value="">Chọn danh mục</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
+              <label className="grid gap-1.5 text-sm font-bold text-brand-black">Thương hiệu<select value={form.brandId} onChange={(event) => setForm((value) => ({ ...value, brandId: event.target.value }))} className="select-form w-full"><option value="">Chọn thương hiệu</option>{brands.map((brand) => <option key={brand.id} value={brand.id}>{brand.name}</option>)}</select></label>
             </div>
 
-            <div className="rounded-card border border-neutral-light p-[16px]">
-              <h3 className="text-[18px] font-bold text-neutral-black">Ảnh sản phẩm</h3>
+            <div className="rounded-xl border border-brand-light p-4">
+              <h3 className="text-lg font-bold text-brand-black">Ảnh sản phẩm</h3>
               {form.images.length ? (
-                <div className="mt-[12px] grid gap-[12px] sm:grid-cols-2 lg:grid-cols-4">
+                <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                   {form.images.map((image, index) => (
-                    <div key={image} className="rounded-card border border-neutral-light p-[8px]">
-                      <img src={image} alt={`${form.name || 'Sản phẩm'} ${index + 1}`} className="aspect-[4/3] w-full rounded-card object-cover bg-neutral-offwhite" />
-                      <div className="mt-[8px] flex gap-[8px]">
-                        <button type="button" onClick={() => moveImageToFront(index)} className="flex-1 rounded-btn border border-neutral-light px-[8px] py-[6px] text-[12px] font-bold text-neutral-black">{index === 0 ? 'Đại diện' : 'Đặt đại diện'}</button>
-                        <button type="button" onClick={() => setForm((value) => ({ ...value, images: value.images.filter((item) => item !== image) }))} className="rounded-btn border border-neutral-light px-[8px] py-[6px] text-[12px] font-bold text-alert-dark">Xóa</button>
+                    <div key={image} className="rounded-xl border border-brand-light p-2">
+                      <img src={image} alt={`${form.name || 'Sản phẩm'} ${index + 1}`} className="aspect-[4/3] w-full rounded-lg object-cover bg-brand-offwhite" />
+                      <div className="mt-2 flex gap-2">
+                        <button type="button" onClick={() => moveImageToFront(index)} className="flex-1 btn-outline px-2 py-1.5 text-xs text-brand-black">{index === 0 ? 'Đại diện' : 'Đặt đại diện'}</button>
+                        <button type="button" onClick={() => setForm((value) => ({ ...value, images: value.images.filter((item) => item !== image) }))} className="btn-outline px-2 py-1.5 text-xs text-danger border-danger">Xóa</button>
                       </div>
                     </div>
                   ))}
                 </div>
-              ) : <p className="mt-[8px] text-[14px] text-neutral-medium">Chưa có ảnh. Hãy upload ít nhất một ảnh sản phẩm.</p>}
+              ) : <p className="mt-2 text-sm text-brand-muted">Chưa có ảnh. Hãy upload ít nhất một ảnh sản phẩm.</p>}
             </div>
 
-            <div className="rounded-card border border-neutral-light p-[16px]">
-              <div className="flex items-center justify-between gap-[12px]">
-                <h3 className="text-[18px] font-bold text-neutral-black">Biến thể</h3>
-                <button type="button" onClick={() => setForm((value) => ({ ...value, variants: [...value.variants, { name: '', sku: '', size: '', color: '', priceAdjustment: 0, stock: 0 }] }))} className="rounded-btn border border-primary px-[12px] py-[8px] text-[14px] font-bold text-primary hover:bg-primary hover:text-white">Thêm biến thể</button>
+            <div className="rounded-xl border border-brand-light p-4">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-lg font-bold text-brand-black">Biến thể</h3>
+                <button type="button" onClick={() => setForm((value) => ({ ...value, variants: [...value.variants, { name: '', sku: '', size: '', color: '', priceAdjustment: 0, stock: 0 }] }))} className="btn-outline px-3 py-1.5 text-sm text-primary border-primary">Thêm biến thể</button>
               </div>
-              <div className="mt-[12px] grid gap-[12px]">
+              <div className="mt-3 grid gap-3">
                 {form.variants.length ? form.variants.map((variant, index) => (
-                  <div key={index} className="grid gap-[8px] rounded-card bg-neutral-offwhite p-[12px] md:grid-cols-[1fr_1fr_0.7fr_0.7fr_0.7fr_0.7fr_auto]">
-                    <input value={variant.name} onChange={(event) => updateVariant(index, { name: event.target.value })} className="input-form w-full" placeholder="Tên" />
-                    <input value={variant.sku} onChange={(event) => updateVariant(index, { sku: event.target.value })} className="input-form w-full" placeholder="SKU" />
-                    <input value={variant.size ?? ''} onChange={(event) => updateVariant(index, { size: event.target.value })} className="input-form w-full" placeholder="Size" />
-                    <input value={variant.color ?? ''} onChange={(event) => updateVariant(index, { color: event.target.value })} className="input-form w-full" placeholder="Màu" />
-                    <input value={String(variant.priceAdjustment ?? 0)} onChange={(event) => updateVariant(index, { priceAdjustment: Number(event.target.value) })} className="input-form w-full" inputMode="numeric" placeholder="Giá +" />
-                    <input value={String(variant.stock)} onChange={(event) => updateVariant(index, { stock: Number(event.target.value) })} className="input-form w-full" inputMode="numeric" placeholder="Tồn" />
-                    <button type="button" onClick={() => setForm((value) => ({ ...value, variants: value.variants.filter((_, variantIndex) => variantIndex !== index) }))} className="rounded-btn border border-neutral-light px-[12px] py-[8px] text-[13px] font-bold text-alert-dark">Xóa</button>
+                  <div key={index} className="grid gap-2 rounded-xl bg-brand-offwhite p-3 md:grid-cols-[1fr_1fr_0.7fr_0.7fr_0.7fr_0.7fr_auto]">
+                    <input value={variant.name} onChange={(event) => updateVariant(index, { name: event.target.value })} className="input-form w-full h-9 text-sm" placeholder="Tên" />
+                    <input value={variant.sku} onChange={(event) => updateVariant(index, { sku: event.target.value })} className="input-form w-full h-9 text-sm" placeholder="SKU" />
+                    <input value={variant.size ?? ''} onChange={(event) => updateVariant(index, { size: event.target.value })} className="input-form w-full h-9 text-sm" placeholder="Size" />
+                    <input value={variant.color ?? ''} onChange={(event) => updateVariant(index, { color: event.target.value })} className="input-form w-full h-9 text-sm" placeholder="Màu" />
+                    <input value={String(variant.priceAdjustment ?? 0)} onChange={(event) => updateVariant(index, { priceAdjustment: Number(event.target.value) })} className="input-form w-full h-9 text-sm" inputMode="numeric" placeholder="Giá +" />
+                    <input value={String(variant.stock)} onChange={(event) => updateVariant(index, { stock: Number(event.target.value) })} className="input-form w-full h-9 text-sm" inputMode="numeric" placeholder="Tồn" />
+                    <button type="button" onClick={() => setForm((value) => ({ ...value, variants: value.variants.filter((_, variantIndex) => variantIndex !== index) }))} className="btn-outline px-3 py-1.5 text-xs text-danger border-danger">Xóa</button>
                   </div>
-                )) : <p className="text-[14px] text-neutral-medium">Chưa có biến thể. Sản phẩm sẽ dùng tồn kho tổng.</p>}
+                )) : <p className="text-sm text-brand-muted">Chưa có biến thể. Sản phẩm sẽ dùng tồn kho tổng.</p>}
               </div>
             </div>
 
-            <div className="flex flex-col gap-[12px] sm:flex-row sm:justify-end">
-              <button type="button" onClick={() => setModalOpen(false)} className="rounded-btn border border-neutral-input px-[16px] py-[10px] font-bold text-neutral-black">Hủy</button>
-              <button disabled={saving || uploading || Boolean(loadingEditId)} className="btn-primary h-[44px] px-[24px] disabled:opacity-60">{saving ? 'Đang lưu...' : mode === 'edit' ? 'Cập nhật' : 'Thêm sản phẩm'}</button>
+            <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+              <button type="button" onClick={() => setModalOpen(false)} className="btn-outline px-4 py-2">Hủy</button>
+              <button disabled={saving || uploading || Boolean(loadingEditId)} className="btn-primary px-6 py-2 disabled:opacity-60">{saving ? 'Đang lưu...' : mode === 'edit' ? 'Cập nhật' : 'Thêm sản phẩm'}</button>
             </div>
           </form>
         </AdminModal>

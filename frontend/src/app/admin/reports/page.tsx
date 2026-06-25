@@ -1,8 +1,8 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useState } from 'react';
 import { AdminShell } from '@/components/admin-shell';
-import { AdminNotice, EmptyState, LoadingBlocks } from '@/components/admin-ui';
+import { AdminNotice, AdminTable, AdminToolbar, EmptyState, LoadingBlocks } from '@/components/admin-ui';
 import { apiFetch } from '@/lib/api';
 import { compactNumber, money } from '@/lib/format';
 
@@ -94,16 +94,16 @@ export default function AdminReportsPage() {
 
   return (
     <AdminShell title="Báo cáo" description="Báo cáo doanh thu, số đơn, sản phẩm bán chạy và hiệu suất catalog.">
-      <div className="flex flex-col gap-[12px] rounded-card border border-neutral-border bg-white p-[16px] sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-[16px] font-bold text-neutral-black">Khoảng thời gian</p>
-          <p className="text-[14px] text-neutral-medium">Chọn cách gom nhóm doanh thu theo ngày hoặc tháng.</p>
+      <AdminToolbar>
+        <div className="flex-1">
+          <p className="font-bold text-brand-black">Khoảng thời gian</p>
+          <p className="text-sm text-brand-muted mt-1">Chọn cách gom nhóm doanh thu theo ngày hoặc tháng.</p>
         </div>
-        <select value={period} onChange={(event) => setPeriod(event.target.value as Period)} className="input-form bg-white sm:w-[180px]">
+        <select value={period} onChange={(event) => setPeriod(event.target.value as Period)} className="select-form bg-white sm:w-48">
           <option value="day">14 ngày</option>
           <option value="month">12 tháng</option>
         </select>
-      </div>
+      </AdminToolbar>
 
       {error ? <AdminNotice type="error">{error}</AdminNotice> : null}
 
@@ -111,26 +111,26 @@ export default function AdminReportsPage() {
         <LoadingBlocks count={3} />
       ) : (
         <>
-          <section className="grid gap-[16px] sm:grid-cols-2 xl:grid-cols-3">
+          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {cards.map(([label, value]) => (
-              <div key={label} className="rounded-card border border-neutral-border bg-white p-[20px]">
-                <p className="text-[13px] font-bold text-neutral-medium">{label}</p>
-                <p className="mt-[12px] truncate text-[28px] font-bold leading-[32px] text-neutral-black">{value}</p>
+              <div key={label} className="rounded-xl border border-brand-light bg-white p-5 hover:shadow-card transition-shadow">
+                <p className="text-xs font-semibold text-brand-muted uppercase tracking-wide">{label}</p>
+                <p className="mt-2 truncate text-3xl font-black text-brand-black">{value}</p>
               </div>
             ))}
           </section>
 
-          <section className="rounded-card border border-neutral-border bg-white p-[20px]">
-            <h2 className="text-[22px] font-bold leading-[26px] text-neutral-black">Biểu đồ doanh thu</h2>
+          <section className="rounded-xl border border-brand-light bg-white p-5">
+            <h2 className="text-xl font-bold text-brand-black">Biểu đồ doanh thu</h2>
             {revenueSeries.length ? (
-              <div className="mt-[24px] flex h-[260px] items-end gap-[8px] overflow-x-auto border-b border-neutral-light pb-[12px]">
+              <div className="mt-6 flex h-64 items-end gap-2 overflow-x-auto border-b border-brand-light pb-3">
                 {revenueSeries.map((point) => {
-                  const height = Math.max((point.revenue / maxRevenue) * 220, point.revenue ? 16 : 4);
+                  const height = Math.max((point.revenue / maxRevenue) * 240, point.revenue ? 16 : 4);
                   return (
-                    <div key={point.key} className="flex min-w-[42px] flex-1 flex-col items-center justify-end gap-[8px]">
-                      <span className="text-[11px] font-bold text-neutral-medium">{compactNumber(point.revenue)}</span>
-                      <div title={`${point.label}: ${money(point.revenue)}`} className="w-full rounded-t-btn bg-primary" style={{ height }} />
-                      <span className="text-[11px] text-neutral-medium">{point.label}</span>
+                    <div key={point.key} className="flex min-w-[42px] flex-1 flex-col items-center justify-end gap-2">
+                      <span className="text-xs font-semibold text-brand-muted">{compactNumber(point.revenue)}</span>
+                      <div title={`${point.label}: ${money(point.revenue)}`} className="w-full rounded-t-btn bg-accent/80 hover:bg-accent transition-colors cursor-default" style={{ height }} />
+                      <span className="text-xs text-brand-muted">{point.label}</span>
                     </div>
                   );
                 })}
@@ -140,31 +140,27 @@ export default function AdminReportsPage() {
             )}
           </section>
 
-          <section className="rounded-card border border-neutral-border bg-white p-[20px]">
-            <h2 className="text-[22px] font-bold leading-[26px] text-neutral-black">Sản phẩm bán chạy</h2>
+          <section className="rounded-xl border border-brand-light bg-white p-5">
+            <h2 className="text-xl font-bold text-brand-black mb-4">Sản phẩm bán chạy</h2>
             {topProducts.length ? (
-              <div className="mt-[16px] overflow-x-auto">
-                <table className="w-full min-w-[720px] text-left text-[14px]">
-                  <thead className="bg-neutral-offwhite text-[12px] uppercase text-neutral-medium">
-                    <tr>
-                      <th className="px-[16px] py-[12px]">Sản phẩm</th>
-                      <th className="px-[16px] py-[12px]">Số lượng</th>
-                      <th className="px-[16px] py-[12px]">Doanh thu</th>
+              <AdminTable minWidth={720}>
+                <thead>
+                  <tr>
+                    {['Sản phẩm', 'Số lượng', 'Doanh thu'].map(h => <th key={h}>{h}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {topProducts.map((product) => (
+                    <tr key={product.productId}>
+                      <td><span className="font-bold text-brand-black">{product.productName}</span></td>
+                      <td>{product._sum.quantity ?? 0}</td>
+                      <td><span className="font-bold text-brand-black">{money(product._sum.total)}</span></td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-neutral-light">
-                    {topProducts.map((product) => (
-                      <tr key={product.productId}>
-                        <td className="px-[16px] py-[14px] font-bold text-neutral-black">{product.productName}</td>
-                        <td className="px-[16px] py-[14px]">{product._sum.quantity ?? 0}</td>
-                        <td className="px-[16px] py-[14px] font-bold">{money(product._sum.total)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </AdminTable>
             ) : (
-              <div className="mt-[16px]"><EmptyState title="Chưa có dữ liệu bán chạy" description="Dữ liệu sẽ xuất hiện sau khi có đơn hàng." /></div>
+              <div className="mt-4"><EmptyState title="Chưa có dữ liệu bán chạy" description="Dữ liệu sẽ xuất hiện sau khi có đơn hàng." /></div>
             )}
           </section>
         </>

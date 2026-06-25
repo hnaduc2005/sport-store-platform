@@ -1,8 +1,8 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useState } from 'react';
 import { AdminShell } from '@/components/admin-shell';
-import { AdminModal, AdminNotice, EmptyState, LoadingTable, StatusBadge, TableActionButton } from '@/components/admin-ui';
+import { AdminModal, AdminNotice, AdminTable, AdminToolbar, EmptyState, LoadingTable, StatusBadge, TableActionButton } from '@/components/admin-ui';
 import { ApiError, apiFetch, type PaginatedResponse, queryString } from '@/lib/api';
 import { formatDateTime, money, statusLabel } from '@/lib/format';
 import type { Order } from '@/lib/mock-data';
@@ -16,16 +16,11 @@ type AdminOrder = Omit<Order, 'items'> & {
   shippingFee?: number | string;
   discount?: number | string;
   note?: string | null;
-  user?: { id: string; name: string | null; email: string; phone?: string | null };
+  user?: { id: string; name: string | null; email: string };
   coupon?: { code: string } | null;
   items: Array<{
-    id: string;
-    productId: string;
-    productName: string;
-    variantName?: string | null;
-    unitPrice: number | string;
-    quantity: number;
-    total: number | string;
+    id: string; productId: string; productName: string;
+    variantName?: string | null; unitPrice: number | string; quantity: number; total: number | string;
   }>;
 };
 
@@ -35,9 +30,8 @@ const orderFlow: OrderStatus[] = ['PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPED
 
 function availableOrderStatuses(current: OrderStatus) {
   if (current === 'DELIVERED' || current === 'CANCELLED') return [current];
-
-  const currentIndex = orderFlow.indexOf(current);
-  return orderStatuses.filter((status) => status === 'CANCELLED' || orderFlow.indexOf(status) >= currentIndex);
+  const idx = orderFlow.indexOf(current);
+  return orderStatuses.filter(s => s === 'CANCELLED' || orderFlow.indexOf(s) >= idx);
 }
 
 export default function AdminOrdersPage() {
@@ -50,177 +44,162 @@ export default function AdminOrdersPage() {
   const [error, setError] = useState('');
 
   const loadData = async () => {
-    setLoading(true);
-    setError('');
+    setLoading(true); setError('');
     try {
-      const response = await apiFetch<PaginatedResponse<AdminOrder>>(`/orders${queryString(filters)}`);
-      setOrders(response.data);
-      setMeta(response.meta);
+      const res = await apiFetch<PaginatedResponse<AdminOrder>>(`/orders${queryString(filters)}`);
+      setOrders(res.data); setMeta(res.meta);
     } catch {
-      setOrders([]);
-      setMeta({ total: 0, page: filters.page, limit: filters.limit, pageCount: 1 });
-      setError('Không tải được đơn hàng từ API. Vui lòng kiểm tra đăng nhập admin, backend hoặc database.');
-    } finally {
-      setLoading(false);
-    }
+      setOrders([]); setMeta({ total: 0, page: filters.page, limit: filters.limit, pageCount: 1 });
+      setError('Không tải được đơn hàng. Kiểm tra đăng nhập admin và backend.');
+    } finally { setLoading(false); }
   };
 
-  useEffect(() => {
-    loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters]);
+  useEffect(() => { loadData(); }, [filters]); // eslint-disable-line
 
-  const setFilter = (patch: Partial<typeof filters>) => {
-    setFilters((current) => ({ ...current, ...patch, page: patch.page ?? 1 }));
-  };
+  const setFilter = (patch: Partial<typeof filters>) =>
+    setFilters(c => ({ ...c, ...patch, page: patch.page ?? 1 }));
 
   const updateOrder = async (order: AdminOrder, patch: Partial<Pick<AdminOrder, 'status' | 'paymentStatus'>>) => {
     setMessage('');
-
     try {
-      const updated = await apiFetch<AdminOrder>(`/orders/${order.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify(patch),
-      });
-      setOrders((items) => items.map((item) => (item.id === order.id ? updated : item)));
-      setSelectedOrder((current) => (current?.id === order.id ? updated : current));
+      const updated = await apiFetch<AdminOrder>(`/orders/${order.id}`, { method: 'PATCH', body: JSON.stringify(patch) });
+      setOrders(items => items.map(i => i.id === order.id ? updated : i));
+      setSelectedOrder(c => c?.id === order.id ? updated : c);
       setMessage('Đã cập nhật đơn hàng.');
-    } catch (err) {
-      setMessage(err instanceof ApiError ? err.message : 'Không thể cập nhật đơn hàng.');
-    }
+    } catch (err) { setMessage(err instanceof ApiError ? err.message : 'Không thể cập nhật đơn hàng.'); }
   };
 
   return (
     <AdminShell title="Quản lý đơn hàng" description="Theo dõi trạng thái xử lý, thanh toán, giao hàng và chi tiết đơn.">
-      <div className="grid gap-[12px] rounded-card border border-neutral-border bg-white p-[16px] md:grid-cols-[1fr_220px_220px]">
-        <input value={filters.q} onChange={(event) => setFilter({ q: event.target.value })} className="input-search w-full" placeholder="Tìm mã đơn, khách, SĐT..." />
-        <select value={filters.status} onChange={(event) => setFilter({ status: event.target.value })} className="input-form bg-white">
+      <AdminToolbar>
+        <div className="relative flex-1">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input value={filters.q} onChange={e => setFilter({ q: e.target.value })} className="input-form pl-10 w-full" placeholder="Tìm mã đơn, khách hàng, SĐT..." />
+        </div>
+        <select value={filters.status} onChange={e => setFilter({ status: e.target.value })} className="select-form w-full sm:w-48">
           <option value="">Mọi trạng thái đơn</option>
-          {orderStatuses.map((status) => <option key={status} value={status}>{statusLabel(status)}</option>)}
+          {orderStatuses.map(s => <option key={s} value={s}>{statusLabel(s)}</option>)}
         </select>
-        <select value={filters.paymentStatus} onChange={(event) => setFilter({ paymentStatus: event.target.value })} className="input-form bg-white">
+        <select value={filters.paymentStatus} onChange={e => setFilter({ paymentStatus: e.target.value })} className="select-form w-full sm:w-44">
           <option value="">Mọi thanh toán</option>
-          {paymentStatuses.map((status) => <option key={status} value={status}>{statusLabel(status)}</option>)}
+          {paymentStatuses.map(s => <option key={s} value={s}>{statusLabel(s)}</option>)}
         </select>
-      </div>
+      </AdminToolbar>
 
-      {error ? <AdminNotice type="error">{error}</AdminNotice> : null}
-      {message ? <AdminNotice type={message.startsWith('Đã') ? 'success' : 'error'}>{message}</AdminNotice> : null}
+      {error && <AdminNotice type="error">{error}</AdminNotice>}
+      {message && <AdminNotice type={message.startsWith('Đã') ? 'success' : 'error'}>{message}</AdminNotice>}
 
       {loading ? (
-        <LoadingTable columns={8} />
+        <LoadingTable columns={7} />
       ) : orders.length ? (
-        <div className="overflow-x-auto rounded-card border border-neutral-light bg-white">
-          <table className="w-full min-w-[1040px] text-left text-[14px]">
-            <thead className="bg-neutral-offwhite text-[12px] uppercase text-neutral-medium tracking-wide">
-              <tr>
-                <th className="px-[16px] py-[12px] font-bold">Mã đơn</th>
-                <th className="px-[16px] py-[12px] font-bold">Khách hàng</th>
-                <th className="px-[16px] py-[12px] font-bold">Tổng tiền</th>
-                <th className="px-[16px] py-[12px] font-bold">Thanh toán</th>
-                <th className="px-[16px] py-[12px] font-bold">Trạng thái</th>
-                <th className="px-[16px] py-[12px] font-bold">Ngày tạo</th>
-                <th className="px-[16px] py-[12px] font-bold">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-light">
-              {orders.map((order) => (
-                <tr key={order.id} className="text-neutral-dark hover:bg-neutral-offwhite">
-                  <td className="px-[16px] py-[16px] font-bold text-neutral-black">{order.code}</td>
-                  <td className="px-[16px] py-[16px]">
-                    <p className="font-bold text-neutral-black">{order.customerName}</p>
-                    <p className="text-[12px] text-neutral-medium">{order.phone}</p>
-                  </td>
-                  <td className="px-[16px] py-[16px] font-bold text-neutral-black">{money(order.total)}</td>
-                  <td className="px-[16px] py-[16px]"><StatusBadge status={order.paymentStatus} /></td>
-                  <td className="px-[16px] py-[16px]"><StatusBadge status={order.status} /></td>
-                  <td className="px-[16px] py-[16px] text-neutral-medium">{formatDateTime(order.createdAt)}</td>
-                  <td className="px-[16px] py-[16px]">
-                    <TableActionButton onClick={() => setSelectedOrder(order)} tone="primary">Chi tiết</TableActionButton>
-                  </td>
-                </tr>
+        <AdminTable minWidth={1040}>
+          <thead>
+            <tr>
+              {['Mã đơn', 'Khách hàng', 'Tổng tiền', 'Phương thức', 'Thanh toán', 'Đơn hàng', 'Ngày tạo', 'Thao tác'].map(h => (
+                <th key={h}>{h}</th>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </tr>
+          </thead>
+          <tbody>
+            {orders.map(order => (
+              <tr key={order.id}>
+                <td><span className="font-mono font-bold text-brand-black">{order.code}</span></td>
+                <td>
+                  <p className="font-semibold text-brand-black">{order.customerName}</p>
+                  <p className="text-xs text-brand-muted mt-0.5">{order.phone}</p>
+                </td>
+                <td><span className="font-bold text-brand-black">{money(order.total)}</span></td>
+                <td><span className="text-xs text-brand-muted">{order.paymentMethod === 'COD' ? 'COD' : 'Chuyển khoản'}</span></td>
+                <td><StatusBadge status={order.paymentStatus} /></td>
+                <td><StatusBadge status={order.status} /></td>
+                <td className="text-brand-muted">{formatDateTime(order.createdAt)}</td>
+                <td>
+                  <TableActionButton onClick={() => setSelectedOrder(order)} tone="primary">Chi tiết</TableActionButton>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </AdminTable>
       ) : (
-        <EmptyState title="Không có đơn hàng" description="Đơn hàng mới sẽ xuất hiện tại đây." />
+        <EmptyState title="Không có đơn hàng" description="Đơn hàng mới sẽ xuất hiện tại đây." icon="📦" />
       )}
 
-      <div className="flex flex-col justify-between gap-[12px] text-[14px] text-neutral-medium sm:flex-row sm:items-center">
-        <span>Trang {meta.page}/{meta.pageCount}, tổng {meta.total} đơn hàng</span>
-        <div className="flex gap-[8px]">
-          <button disabled={meta.page <= 1} onClick={() => setFilters((current) => ({ ...current, page: current.page - 1 }))} className="rounded-btn border border-neutral-light px-[12px] py-[8px] font-bold disabled:opacity-50">Trước</button>
-          <button disabled={meta.page >= meta.pageCount} onClick={() => setFilters((current) => ({ ...current, page: current.page + 1 }))} className="rounded-btn border border-neutral-light px-[12px] py-[8px] font-bold disabled:opacity-50">Sau</button>
+      {/* Pagination */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-sm text-brand-muted">
+        <span>Trang {meta.page}/{meta.pageCount} · Tổng {meta.total} đơn hàng</span>
+        <div className="flex gap-2">
+          <button disabled={meta.page <= 1} onClick={() => setFilters(c => ({ ...c, page: c.page - 1 }))} className="btn-outline px-4 py-2 text-sm disabled:opacity-40">← Trước</button>
+          <button disabled={meta.page >= meta.pageCount} onClick={() => setFilters(c => ({ ...c, page: c.page + 1 }))} className="btn-outline px-4 py-2 text-sm disabled:opacity-40">Sau →</button>
         </div>
       </div>
 
-      {selectedOrder ? (
-        <AdminModal title={`Đơn hàng ${selectedOrder.code}`} description="Thông tin khách, sản phẩm, phí và trạng thái xử lý." onClose={() => setSelectedOrder(null)}>
-          <div className="grid gap-[20px]">
-            <div className="grid gap-[16px] md:grid-cols-2">
-              <div className="rounded-card border border-neutral-light p-[16px]">
-                <h3 className="text-[18px] font-bold text-neutral-black">Khách hàng</h3>
-                <div className="mt-[12px] grid gap-[8px] text-[14px] text-neutral-dark">
-                  <p><b>Họ tên:</b> {selectedOrder.customerName}</p>
-                  <p><b>SĐT:</b> {selectedOrder.phone}</p>
-                  <p><b>Email:</b> {selectedOrder.user?.email ?? 'Chưa có'}</p>
-                  <p><b>Địa chỉ:</b> {selectedOrder.address}</p>
-                  {selectedOrder.note ? <p><b>Ghi chú:</b> {selectedOrder.note}</p> : null}
-                </div>
+      {/* Order detail modal */}
+      {selectedOrder && (
+        <AdminModal title={`Đơn hàng ${selectedOrder.code}`} description="Thông tin khách, sản phẩm, phí và trạng thái xử lý." onClose={() => setSelectedOrder(null)} wide>
+          <div className="space-y-5">
+            <div className="grid gap-4 sm:grid-cols-2">
+              {/* Customer info */}
+              <div className="rounded-xl border border-brand-light p-4 space-y-2">
+                <h3 className="font-bold text-brand-black">Thông tin khách hàng</h3>
+                {[
+                  ['Họ tên', selectedOrder.customerName],
+                  ['SĐT', selectedOrder.phone],
+                  ['Email', selectedOrder.user?.email ?? 'Chưa có'],
+                  ['Địa chỉ', selectedOrder.address],
+                  ...(selectedOrder.note ? [['Ghi chú', selectedOrder.note]] : []),
+                ].map(([k, v]) => (
+                  <div key={k} className="flex justify-between gap-3 text-sm">
+                    <span className="text-brand-muted">{k}:</span>
+                    <span className="font-medium text-brand-black text-right">{v}</span>
+                  </div>
+                ))}
               </div>
-              <div className="rounded-card border border-neutral-light p-[16px]">
-                <h3 className="text-[18px] font-bold text-neutral-black">Cập nhật trạng thái</h3>
-                <div className="mt-[12px] grid gap-[12px]">
-                  <label className="grid gap-[6px] text-[14px] font-bold text-neutral-black">Trạng thái đơn
-                    <select value={selectedOrder.status} onChange={(event) => updateOrder(selectedOrder, { status: event.target.value as OrderStatus })} className="input-form bg-white">
-                      {availableOrderStatuses(selectedOrder.status).map((status) => <option key={status} value={status}>{statusLabel(status)}</option>)}
-                    </select>
-                  </label>
-                  <label className="grid gap-[6px] text-[14px] font-bold text-neutral-black">Thanh toán
-                    <select value={selectedOrder.paymentStatus} onChange={(event) => updateOrder(selectedOrder, { paymentStatus: event.target.value as PaymentStatus })} className="input-form bg-white">
-                      {paymentStatuses.map((status) => <option key={status} value={status}>{statusLabel(status)}</option>)}
-                    </select>
-                  </label>
+
+              {/* Status update */}
+              <div className="rounded-xl border border-brand-light p-4 space-y-4">
+                <h3 className="font-bold text-brand-black">Cập nhật trạng thái</h3>
+                <div>
+                  <label className="form-label">Trạng thái đơn</label>
+                  <select value={selectedOrder.status} onChange={e => updateOrder(selectedOrder, { status: e.target.value as OrderStatus })} className="select-form w-full mt-1.5">
+                    {availableOrderStatuses(selectedOrder.status).map(s => <option key={s} value={s}>{statusLabel(s)}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="form-label">Thanh toán</label>
+                  <select value={selectedOrder.paymentStatus} onChange={e => updateOrder(selectedOrder, { paymentStatus: e.target.value as PaymentStatus })} className="select-form w-full mt-1.5">
+                    {paymentStatuses.map(s => <option key={s} value={s}>{statusLabel(s)}</option>)}
+                  </select>
                 </div>
               </div>
             </div>
 
-            <div className="overflow-x-auto rounded-card border border-neutral-light">
-              <table className="w-full min-w-[680px] text-left text-[14px]">
-                <thead className="bg-neutral-offwhite text-[12px] uppercase text-neutral-medium">
-                  <tr>
-                    <th className="px-[16px] py-[12px]">Sản phẩm</th>
-                    <th className="px-[16px] py-[12px]">Đơn giá</th>
-                    <th className="px-[16px] py-[12px]">SL</th>
-                    <th className="px-[16px] py-[12px]">Thành tiền</th>
+            {/* Items table */}
+            <AdminTable minWidth={560}>
+              <thead><tr>{['Sản phẩm', 'Đơn giá', 'SL', 'Thành tiền'].map(h => <th key={h}>{h}</th>)}</tr></thead>
+              <tbody>
+                {selectedOrder.items.map(item => (
+                  <tr key={item.id}>
+                    <td>
+                      <p className="font-semibold text-brand-black">{item.productName}</p>
+                      {item.variantName && <p className="text-xs text-brand-muted">{item.variantName}</p>}
+                    </td>
+                    <td>{money(item.unitPrice)}</td>
+                    <td>{item.quantity}</td>
+                    <td className="font-bold text-brand-black">{money(item.total)}</td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-light">
-                  {selectedOrder.items.map((item) => (
-                    <tr key={item.id}>
-                      <td className="px-[16px] py-[14px]">
-                        <p className="font-bold text-neutral-black">{item.productName}</p>
-                        {item.variantName ? <p className="text-[12px] text-neutral-medium">{item.variantName}</p> : null}
-                      </td>
-                      <td className="px-[16px] py-[14px]">{money(item.unitPrice)}</td>
-                      <td className="px-[16px] py-[14px]">{item.quantity}</td>
-                      <td className="px-[16px] py-[14px] font-bold">{money(item.total)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </AdminTable>
 
-            <div className="ml-auto grid w-full max-w-sm gap-[8px] text-[14px]">
-              <div className="flex justify-between"><span>Phí ship</span><b>{money(selectedOrder.shippingFee)}</b></div>
-              <div className="flex justify-between"><span>Giảm giá</span><b>-{money(selectedOrder.discount)}</b></div>
-              <div className="flex justify-between border-t border-neutral-light pt-[8px] text-[18px] text-neutral-black"><span>Tổng</span><b>{money(selectedOrder.total)}</b></div>
+            {/* Totals */}
+            <div className="ml-auto w-full max-w-xs space-y-2 text-sm">
+              <div className="flex justify-between text-brand-muted"><span>Phí ship</span><span>{money(selectedOrder.shippingFee)}</span></div>
+              <div className="flex justify-between text-brand-muted"><span>Giảm giá</span><span>-{money(selectedOrder.discount)}</span></div>
+              <div className="flex justify-between font-bold text-brand-black text-lg border-t border-brand-light pt-2"><span>Tổng</span><span>{money(selectedOrder.total)}</span></div>
             </div>
           </div>
         </AdminModal>
-      ) : null}
+      )}
     </AdminShell>
   );
 }
-

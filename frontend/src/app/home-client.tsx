@@ -6,11 +6,73 @@ import { ProductCard } from '@/components/product-card';
 import { apiFetch } from '@/lib/api';
 import type { Category, Product } from '@/lib/mock-data';
 
+/* ── Static benefit items ── */
 const benefits = [
-  ['Freeship', 'Miễn phí vận chuyển cho đơn từ 1,5 triệu'],
-  ['Khuyến mãi', 'Nhiều sản phẩm giảm giá theo chiến dịch'],
-  ['Đổi trả', 'Hỗ trợ đổi size trong 7 ngày'],
+  {
+    icon: (
+      <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
+      </svg>
+    ),
+    title: 'Freeship toàn quốc',
+    desc: 'Miễn phí vận chuyển cho đơn từ 1.500.000đ',
+  },
+  {
+    icon: (
+      <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+      </svg>
+    ),
+    title: 'Hàng chính hãng 100%',
+    desc: 'Sản phẩm đến thẳng từ nhà sản xuất uy tín',
+  },
+  {
+    icon: (
+      <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+      </svg>
+    ),
+    title: 'Đổi trả dễ dàng',
+    desc: 'Hỗ trợ đổi size, trả hàng trong vòng 30 ngày',
+  },
+  {
+    icon: (
+      <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 01-.923 1.785A5.969 5.969 0 006 21c1.282 0 2.47-.402 3.445-1.087.81.22 1.668.337 2.555.337z" />
+      </svg>
+    ),
+    title: 'Hỗ trợ 7/24',
+    desc: 'Tư vấn chọn đồ, giải đáp thắc mắc mọi lúc',
+  },
 ];
+
+/* ── Sport categories with emojis ── */
+const sportEmojis: Record<string, string> = {
+  running: '🏃',
+  training: '💪',
+  football: '⚽',
+  basketball: '🏀',
+  accessories: '🎒',
+};
+
+/* ── Skeleton ── */
+function ProductSkeleton() {
+  return (
+    <div className="rounded-card border border-brand-light bg-white overflow-hidden">
+      <div className="skeleton" style={{ aspectRatio: '3/4' }} />
+      <div className="p-4 space-y-2.5">
+        <div className="skeleton h-3 w-1/3 rounded-full" />
+        <div className="skeleton h-4 w-5/6 rounded" />
+        <div className="skeleton h-3 w-2/3 rounded" />
+        <div className="skeleton h-5 w-1/2 rounded mt-1" />
+      </div>
+    </div>
+  );
+}
+
+function CategorySkeleton() {
+  return <div className="skeleton rounded-card" style={{ aspectRatio: '4/3' }} />;
+}
 
 export function HomeClientPage() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -20,168 +82,332 @@ export function HomeClientPage() {
 
   useEffect(() => {
     let active = true;
-
     async function loadHomeData() {
       setLoading(true);
       setError('');
-
       try {
         const [productData, categoryData] = await Promise.all([
           apiFetch<Product[]>('/products/featured'),
           apiFetch<Category[]>('/categories'),
         ]);
-
         if (!active) return;
-
         setFeaturedProducts(productData);
-        setCategories(categoryData.filter((category) => category.isActive !== false));
+        setCategories(categoryData.filter(c => c.isActive !== false));
       } catch {
         if (!active) return;
         setFeaturedProducts([]);
         setCategories([]);
-        setError('Không tải được dữ liệu từ API. Vui lòng kiểm tra backend hoặc database.');
+        setError('Không tải được dữ liệu. Vui lòng kiểm tra backend.');
       } finally {
         if (active) setLoading(false);
       }
     }
-
     loadHomeData();
-
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, []);
 
   return (
-    <div className="space-y-[24px]">
-      <section className="relative min-h-[520px] overflow-hidden rounded-card bg-primary-deep text-white">
+    <div>
+      {/* ══════════════════════════════════════════
+          HERO SECTION
+      ══════════════════════════════════════════ */}
+      <section className="relative min-h-[85vh] overflow-hidden bg-brand-black flex items-center">
+        {/* Background image */}
         <img
-          src="https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=1800&q=80"
-          alt="Đồ thể thao BigSport"
-          className="absolute inset-0 h-full w-full object-cover opacity-55"
+          src="https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=1800&q=80"
+          alt=""
+          aria-hidden
+          className="absolute inset-0 h-full w-full object-cover opacity-30"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-primary-deep/90 via-primary-deep/55 to-transparent" />
-        <div className="relative grid min-h-[520px] content-center gap-[32px] px-[20px] py-[104px] md:grid-cols-[1.2fr_0.8fr] lg:px-[32px]">
-          <div className="max-w-2xl">
-            <p className="text-[14px] font-bold uppercase text-white/85">BigSport Store</p>
-            <h1 className="mt-[16px] text-[40px] font-medium leading-[48px]">Đồ thể thao cho mọi buổi tập.</h1>
-            <p className="mt-[20px] max-w-xl text-[16px] leading-[24px] text-zinc-100">
-              Giày chạy bộ, trang phục tập luyện, bóng đá, bóng rổ và phụ kiện chính hãng được quản lý trực tiếp từ trang admin.
-            </p>
-            <div className="mt-[28px] flex flex-wrap gap-[12px]">
-              <Link href="/products" className="btn-primary">
-                Mua sắm ngay
-              </Link>
-              <Link href="/contact" className="btn-secondary">
-                Tư vấn chọn đồ
-              </Link>
+        {/* Gradient overlay */}
+        <div className="absolute inset-0 gradient-hero" />
+
+        {/* Content */}
+        <div className="relative mx-auto max-w-container px-4 sm:px-6 lg:px-8 w-full py-24">
+          <div className="grid gap-12 lg:grid-cols-[1fr_auto] lg:items-center">
+            {/* Left — headline */}
+            <div className="max-w-3xl animate-fade-in">
+              <span className="inline-block text-xs font-bold uppercase tracking-[0.2em] text-accent mb-4 border border-accent/40 rounded-full px-3 py-1">
+                BigSport Store — Premium Sports
+              </span>
+              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black text-white leading-[1.05] tracking-tight">
+                Đỉnh cao
+                <br />
+                <span className="text-accent">thể thao.</span>
+                <br />
+                Mọi buổi tập.
+              </h1>
+              <p className="mt-6 max-w-xl text-lg text-gray-300 leading-relaxed">
+                Giày chạy bộ, trang phục tập luyện, bóng đá, bóng rổ và phụ kiện chính hãng —
+                được đồng bộ trực tiếp từ catalog sản phẩm.
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Link
+                  href="/products"
+                  className="btn-primary px-7 py-3.5 text-base font-bold shadow-lg hover:shadow-accent/30"
+                >
+                  Mua sắm ngay →
+                </Link>
+                <Link
+                  href="/products?onSale=true"
+                  className="btn-secondary px-7 py-3.5 text-base font-bold"
+                >
+                  Xem khuyến mãi
+                </Link>
+              </div>
+              {/* Stats bar */}
+              <div className="mt-12 flex flex-wrap gap-8">
+                {[['10K+', 'Khách hàng'], ['500+', 'Sản phẩm'], ['50+', 'Thương hiệu'], ['100%', 'Chính hãng']].map(([val, lbl]) => (
+                  <div key={lbl}>
+                    <p className="text-2xl font-black text-white">{val}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{lbl}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right — category pills */}
+            <div className="hidden lg:flex flex-col gap-3 min-w-[220px]">
+              <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">Danh mục nhanh</p>
+              {loading
+                ? Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="h-14 animate-pulse rounded-xl bg-white/10" />
+                  ))
+                : categories.slice(0, 5).map(cat => (
+                    <Link
+                      key={cat.slug}
+                      href={`/products?category=${cat.slug}`}
+                      className="flex items-center gap-3 rounded-xl border border-white/15 bg-white/8 px-4 py-3.5 text-sm font-medium text-white backdrop-blur-sm transition-all hover:border-accent/50 hover:bg-white/15"
+                    >
+                      <span className="text-xl">{sportEmojis[cat.slug] ?? '🏅'}</span>
+                      <span>{cat.name}</span>
+                      <svg className="ml-auto w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+                    </Link>
+                  ))
+              }
             </div>
           </div>
-          <div className="grid content-end gap-[12px] text-[14px]">
-            {loading
-              ? Array.from({ length: 4 }).map((_, index) => (
-                  <div key={index} className="h-[54px] animate-pulse rounded-card border border-white/20 bg-white/10" />
-                ))
-              : categories.slice(0, 4).map((category) => (
-                  <Link
-                    key={category.slug}
-                    href={`/products?category=${category.slug}`}
-                    className="rounded-card border border-white/20 bg-white/10 p-[16px] backdrop-blur transition hover:bg-white/20"
-                  >
-                    {category.name}
-                  </Link>
-                ))}
-          </div>
+        </div>
+
+        {/* Scroll indicator */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-gray-500 animate-bounce">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
         </div>
       </section>
 
-      {error ? <p className="rounded-card border border-alert bg-white p-[16px] text-[14px] font-bold text-alert-dark">{error}</p> : null}
-
-      <section className="grid gap-[16px] md:grid-cols-3">
-        {benefits.map(([title, description]) => (
-          <div key={title} className="rounded-card border border-neutral-border bg-white p-[20px]">
-            <h3 className="text-[24px] font-medium leading-[28.8px] text-neutral-black">{title}</h3>
-            <p className="mt-[8px] text-[14px] leading-[21px] text-neutral-medium">{description}</p>
-          </div>
-        ))}
-      </section>
-
-      <section className="space-y-[20px]">
-        <div className="flex items-end justify-between gap-[16px]">
-          <div>
-            <p className="text-[12px] font-bold uppercase text-primary">Danh mục</p>
-            <h2 className="mt-[8px] text-[32px] font-bold leading-[32px] text-neutral-black">Mua theo môn thể thao</h2>
-          </div>
-        </div>
-        {loading ? (
-          <div className="grid gap-[16px] sm:grid-cols-2 lg:grid-cols-5">
-            {Array.from({ length: 5 }).map((_, index) => (
-              <div key={index} className="h-[220px] animate-pulse rounded-standard bg-neutral-offwhite" />
+      {/* ══════════════════════════════════════════
+          BENEFITS BAR
+      ══════════════════════════════════════════ */}
+      <section className="bg-white border-b border-brand-light">
+        <div className="mx-auto max-w-container px-4 sm:px-6 lg:px-8">
+          <div className="grid gap-0 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-brand-light">
+            {benefits.map(b => (
+              <div key={b.title} className="flex items-start gap-4 p-6 lg:p-7">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-accent-bg text-accent">
+                  {b.icon}
+                </div>
+                <div>
+                  <p className="font-bold text-brand-black text-sm">{b.title}</p>
+                  <p className="mt-0.5 text-xs text-brand-muted leading-relaxed">{b.desc}</p>
+                </div>
+              </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════
+          CATEGORIES
+      ══════════════════════════════════════════ */}
+      <section className="mx-auto max-w-container px-4 sm:px-6 lg:px-8 py-16">
+        <div className="flex items-end justify-between mb-8">
+          <div>
+            <span className="section-label">Danh mục</span>
+            <h2 className="section-title mt-2">Mua theo môn thể thao</h2>
+          </div>
+          <Link href="/products" className="hidden sm:flex items-center gap-1 text-sm font-semibold text-accent hover:text-accent-hover transition-colors">
+            Xem tất cả
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+          </Link>
+        </div>
+
+        {loading ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            {Array.from({ length: 5 }).map((_, i) => <CategorySkeleton key={i} />)}
+          </div>
         ) : categories.length ? (
-          <div className="grid gap-[16px] sm:grid-cols-2 lg:grid-cols-5">
-            {categories.map((category) => (
-              <Link key={category.slug} href={`/products?category=${category.slug}`} className="group overflow-hidden rounded-standard bg-white transition hover:bg-neutral-offwhite">
-                <div className="aspect-[4/3] overflow-hidden bg-neutral-offwhite">
-                  <img src={category.imageUrl} alt={category.name} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" />
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            {categories.map(cat => (
+              <Link
+                key={cat.slug}
+                href={`/products?category=${cat.slug}`}
+                className="group relative overflow-hidden rounded-card bg-brand-offwhite"
+                style={{ aspectRatio: '4/3' }}
+              >
+                <img
+                  src={cat.imageUrl}
+                  alt={cat.name}
+                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                />
+                <div className="absolute inset-0 gradient-dark-bottom opacity-80 group-hover:opacity-90 transition-opacity" />
+                <div className="absolute bottom-0 left-0 right-0 p-4">
+                  <p className="font-bold text-white text-sm leading-tight">{cat.name}</p>
+                  <p className="mt-0.5 text-xs text-white/70">{cat._count?.products ?? 0} sản phẩm</p>
                 </div>
-                <div className="p-[15px]">
-                  <p className="font-bold text-neutral-black">{category.name}</p>
-                  <p className="mt-[4px] text-[14px] text-neutral-medium">{category._count?.products ?? 0} sản phẩm</p>
+                <div className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
                 </div>
               </Link>
             ))}
           </div>
         ) : (
-          <div className="rounded-card border border-dashed border-neutral-light bg-white p-[24px] text-center text-[14px] text-neutral-medium">
-            Chưa có danh mục đang hoạt động.
+          <div className="rounded-card border border-dashed border-brand-light bg-white p-12 text-center text-brand-muted">
+            Chưa có danh mục hoạt động.
           </div>
         )}
       </section>
 
-      <section className="rounded-card bg-neutral-offwhite p-[20px] md:p-[32px]">
-        <div className="grid gap-[24px] md:grid-cols-[1fr_auto] md:items-center">
-          <div>
-            <p className="text-[12px] font-bold uppercase text-primary">Ưu đãi SPORT10</p>
-            <h2 className="mt-[8px] text-[32px] font-bold leading-[32px] text-neutral-black">Giảm 10% cho đơn hàng hôm nay</h2>
-            <p className="mt-[12px] max-w-2xl text-[14px] leading-[21px] text-neutral-medium">
-              Áp dụng mã SPORT10 ở bước thanh toán cho các sản phẩm đang bán. Giá, ảnh và tồn kho được đồng bộ từ dữ liệu admin.
-            </p>
+      {/* ══════════════════════════════════════════
+          PROMO BANNER
+      ══════════════════════════════════════════ */}
+      <section className="mx-auto max-w-container px-4 sm:px-6 lg:px-8 pb-8">
+        <div className="relative overflow-hidden rounded-2xl bg-brand-black p-8 md:p-12">
+          <img
+            src="https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?auto=format&fit=crop&w=1400&q=80"
+            alt=""
+            aria-hidden
+            className="absolute inset-0 h-full w-full object-cover opacity-20"
+          />
+          <div className="relative grid gap-6 md:grid-cols-[1fr_auto] md:items-center">
+            <div>
+              <span className="badge-orange text-xs mb-3">Ưu đãi đặc biệt</span>
+              <h2 className="text-3xl md:text-4xl font-black text-white leading-tight">
+                Giảm <span className="text-accent">10%</span> đơn hàng hôm nay
+              </h2>
+              <p className="mt-3 text-gray-300 max-w-lg">
+                Nhập mã <code className="font-mono font-bold text-accent bg-white/10 px-2 py-0.5 rounded text-sm">SPORT10</code> ở bước thanh toán.
+                Áp dụng cho tất cả sản phẩm đang bán.
+              </p>
+            </div>
+            <Link
+              href="/products?onSale=true"
+              className="btn-primary px-7 py-3.5 text-base font-bold whitespace-nowrap self-start md:self-center"
+            >
+              Xem sản phẩm sale
+            </Link>
           </div>
-          <Link href="/products?onSale=true" className="btn-primary">
-            Xem sản phẩm khuyến mãi
-          </Link>
         </div>
       </section>
 
-      <section className="space-y-[20px]">
-        <div className="flex items-end justify-between gap-[16px]">
+      {/* ══════════════════════════════════════════
+          FEATURED PRODUCTS
+      ══════════════════════════════════════════ */}
+      <section className="mx-auto max-w-container px-4 sm:px-6 lg:px-8 py-16">
+        <div className="flex items-end justify-between mb-8">
           <div>
-            <p className="text-[12px] font-bold uppercase text-primary">Nổi bật</p>
-            <h2 className="mt-[8px] text-[32px] font-bold leading-[32px] text-neutral-black">Sản phẩm bán chạy</h2>
+            <span className="section-label">Nổi bật</span>
+            <h2 className="section-title mt-2">Sản phẩm bán chạy</h2>
           </div>
-          <Link href="/products" className="text-[16px] font-normal text-primary transition-colors hover:text-primary-hover">
+          <Link href="/products" className="hidden sm:flex items-center gap-1 text-sm font-semibold text-accent hover:text-accent-hover transition-colors">
             Xem tất cả
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
           </Link>
         </div>
+
+        {error && (
+          <div className="mb-6 rounded-card border border-danger/30 bg-danger-light px-4 py-3 text-sm text-danger-dark font-medium">
+            {error}
+          </div>
+        )}
+
         {loading ? (
-          <div className="grid gap-[16px] sm:grid-cols-2 lg:grid-cols-4">
-            {Array.from({ length: 8 }).map((_, index) => (
-              <div key={index} className="h-[360px] animate-pulse rounded-card bg-neutral-offwhite" />
-            ))}
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 8 }).map((_, i) => <ProductSkeleton key={i} />)}
           </div>
         ) : featuredProducts.length ? (
-          <div className="grid gap-[16px] sm:grid-cols-2 lg:grid-cols-4">
-            {featuredProducts.map((product) => (
-              <ProductCard key={product.slug} product={product} />
-            ))}
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {featuredProducts.map(p => <ProductCard key={p.slug} product={p} />)}
           </div>
         ) : (
-          <div className="rounded-card border border-dashed border-neutral-light bg-white p-[24px] text-center text-[14px] text-neutral-medium">
-            Chưa có sản phẩm đang hoạt động. Hãy thêm hoặc bật sản phẩm trong trang admin.
+          <div className="rounded-card border border-dashed border-brand-light bg-white p-12 text-center">
+            <p className="text-brand-muted">Chưa có sản phẩm nổi bật. Thêm sản phẩm trong trang admin.</p>
           </div>
         )}
+
+        <div className="mt-10 text-center">
+          <Link href="/products" className="btn-outline px-8 py-3 font-semibold">
+            Xem toàn bộ sản phẩm
+          </Link>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════
+          WHY US
+      ══════════════════════════════════════════ */}
+      <section className="bg-white border-t border-brand-light py-16">
+        <div className="mx-auto max-w-container px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <span className="section-label">Cam kết</span>
+            <h2 className="section-title mt-2">Tại sao chọn BigSport?</h2>
+          </div>
+          <div className="grid gap-6 md:grid-cols-3">
+            {[
+              {
+                title: 'Chọn lọc kỹ lưỡng',
+                desc: 'Mỗi sản phẩm đều được kiểm định chất lượng và chọn lọc từ các nhà sản xuất uy tín hàng đầu thế giới.',
+                img: 'https://images.unsplash.com/photo-1571902943202-507ec2618e8f?auto=format&fit=crop&w=600&q=80',
+              },
+              {
+                title: 'Đồng hành luyện tập',
+                desc: 'Từ giày chạy đến phụ kiện gym — tất cả những gì bạn cần cho mỗi buổi tập đều có tại BigSport.',
+                img: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=600&q=80',
+              },
+              {
+                title: 'Giao hàng nhanh chóng',
+                desc: 'Đội ngũ logistics chuyên nghiệp đảm bảo đơn hàng đến tay bạn an toàn trong 1-3 ngày làm việc.',
+                img: 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?auto=format&fit=crop&w=600&q=80',
+              },
+            ].map(item => (
+              <div key={item.title} className="group overflow-hidden rounded-xl border border-brand-light bg-brand-offwhite">
+                <div className="overflow-hidden" style={{ aspectRatio: '16/9' }}>
+                  <img
+                    src={item.img}
+                    alt={item.title}
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                </div>
+                <div className="p-6">
+                  <h3 className="text-base font-bold text-brand-black mb-2">{item.title}</h3>
+                  <p className="text-sm text-brand-muted leading-relaxed">{item.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════
+          BRAND LOGOS
+      ══════════════════════════════════════════ */}
+      <section className="bg-brand-offwhite border-t border-brand-light py-12">
+        <div className="mx-auto max-w-container px-4 sm:px-6 lg:px-8">
+          <p className="text-center text-xs font-bold uppercase tracking-widest text-brand-subtle mb-8">
+            Thương hiệu đối tác
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-8 lg:gap-12">
+            {['Nike', 'Adidas', 'Puma', 'Under Armour', 'Wilson', 'New Balance'].map(brand => (
+              <Link
+                key={brand}
+                href={`/products?brand=${brand.toLowerCase().replace(/ /g, '-')}`}
+                className="text-xl font-black text-brand-subtle/60 transition-colors hover:text-brand-black tracking-tight"
+              >
+                {brand}
+              </Link>
+            ))}
+          </div>
+        </div>
       </section>
     </div>
   );

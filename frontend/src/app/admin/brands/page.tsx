@@ -2,38 +2,23 @@
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { AdminShell } from '@/components/admin-shell';
-import { AdminModal, AdminNotice, EmptyState, LoadingTable, StatusBadge, TableActionButton } from '@/components/admin-ui';
+import { AdminModal, AdminNotice, AdminTable, AdminToolbar, EmptyState, LoadingTable, ModalFormActions, ModalFormRow, StatusBadge, TableActionButton } from '@/components/admin-ui';
 import { ApiError, apiFetch } from '@/lib/api';
 import { brands as fallbackBrands, type Brand } from '@/lib/mock-data';
-import { EnhancedAdminBrandsPage } from './enhanced-page';
 
-type AdminBrand = Brand & {
-  isActive?: boolean;
-};
+type AdminBrand = Brand & { isActive?: boolean };
 
 type BrandForm = {
-  id: string;
-  name: string;
-  slug: string;
-  description: string;
-  logoUrl: string;
-  isActive: boolean;
+  id: string; name: string; slug: string; description: string; logoUrl: string; isActive: boolean;
 };
 
 const emptyForm: BrandForm = { id: '', name: '', slug: '', description: '', logoUrl: '', isActive: true };
 
-function slugify(value: string) {
-  return value
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
+function slugify(v: string) {
+  return v.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
 export default function AdminBrandsPage() {
-  return <EnhancedAdminBrandsPage />;
-
   const [brands, setBrands] = useState<AdminBrand[]>(fallbackBrands);
   const [filter, setFilter] = useState('');
   const [form, setForm] = useState<BrandForm>(emptyForm);
@@ -44,174 +29,141 @@ export default function AdminBrandsPage() {
   const [error, setError] = useState('');
 
   const loadData = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      setBrands(await apiFetch<AdminBrand[]>('/brands'));
-    } catch {
-      setBrands(fallbackBrands);
-      setError('Không tải được thương hiệu từ API. Đang hiển thị dữ liệu demo.');
-    } finally {
-      setLoading(false);
-    }
+    setLoading(true); setError('');
+    try { setBrands(await apiFetch<AdminBrand[]>('/brands')); }
+    catch { setBrands(fallbackBrands); setError('Không tải được thương hiệu. Đang hiển thị dữ liệu demo.'); }
+    finally { setLoading(false); }
   };
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useEffect(() => { loadData(); }, []);
 
   const displayed = useMemo(() => {
     const q = filter.trim().toLowerCase();
-    return brands.filter((brand) => !q || `${brand.name} ${brand.slug} ${brand.description ?? ''}`.toLowerCase().includes(q));
+    return brands.filter(b => !q || `${b.name} ${b.slug} ${b.description ?? ''}`.toLowerCase().includes(q));
   }, [brands, filter]);
 
-  const openCreate = () => {
-    setForm(emptyForm);
-    setModalOpen(true);
-    setMessage('');
+  const openCreate = () => { setForm(emptyForm); setModalOpen(true); setMessage(''); };
+  const openEdit = (b: AdminBrand) => {
+    setForm({ id: b.id, name: b.name, slug: b.slug, description: b.description ?? '', logoUrl: b.logoUrl ?? '', isActive: b.isActive ?? true });
+    setModalOpen(true); setMessage('');
   };
 
-  const openEdit = (brand: AdminBrand) => {
-    setForm({
-      id: brand.id,
-      name: brand.name,
-      slug: brand.slug,
-      description: brand.description ?? '',
-      logoUrl: brand.logoUrl ?? '',
-      isActive: brand.isActive ?? true,
-    });
-    setModalOpen(true);
-    setMessage('');
-  };
-
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    if (!form.name.trim()) {
-      setMessage('Tên thương hiệu không được rỗng.');
-      return;
-    }
-
-    if (!form.slug.trim()) {
-      setMessage('Slug thương hiệu không được rỗng.');
-      return;
-    }
-
-    setSaving(true);
-    setMessage('');
-
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!form.name.trim() || !form.slug.trim()) { setMessage('Tên và slug không được rỗng.'); return; }
+    setSaving(true); setMessage('');
     try {
       await apiFetch<AdminBrand>(form.id ? `/brands/${form.id}` : '/brands', {
         method: form.id ? 'PATCH' : 'POST',
-        body: JSON.stringify({
-          name: form.name.trim(),
-          slug: form.slug.trim(),
-          description: form.description.trim() || undefined,
-          logoUrl: form.logoUrl.trim() || undefined,
-          isActive: form.isActive,
-        }),
+        body: JSON.stringify({ name: form.name.trim(), slug: form.slug.trim(), description: form.description.trim() || undefined, logoUrl: form.logoUrl.trim() || undefined, isActive: form.isActive }),
       });
-      setModalOpen(false);
-      setForm(emptyForm);
-      setMessage(form.id ? 'Đã cập nhật thương hiệu.' : 'Đã thêm thương hiệu.');
-      await loadData();
-    } catch (err) {
-      setMessage(err instanceof ApiError ? err.message : 'Không thể lưu thương hiệu.');
-    } finally {
-      setSaving(false);
-    }
+      setModalOpen(false); setForm(emptyForm); setMessage(form.id ? 'Đã cập nhật thương hiệu.' : 'Đã thêm thương hiệu.'); await loadData();
+    } catch (err) { setMessage(err instanceof ApiError ? err.message : 'Không thể lưu thương hiệu.'); }
+    finally { setSaving(false); }
   };
 
-  const removeBrand = async (brand: AdminBrand) => {
-    if (!window.confirm(`Xóa thương hiệu "${brand.name}"?`)) return;
-
-    try {
-      await apiFetch(`/brands/${brand.id}`, { method: 'DELETE' });
-      setMessage('Đã xóa thương hiệu.');
-      await loadData();
-    } catch (err) {
-      setMessage(err instanceof ApiError ? err.message : 'Không thể xóa thương hiệu.');
-    }
+  const removeBrand = async (b: AdminBrand) => {
+    if (!window.confirm(`Xóa thương hiệu "${b.name}"?`)) return;
+    try { await apiFetch(`/brands/${b.id}`, { method: 'DELETE' }); setMessage('Đã xóa thương hiệu.'); await loadData(); }
+    catch (err) { setMessage(err instanceof ApiError ? err.message : 'Không thể xóa thương hiệu.'); }
   };
 
   return (
-    <AdminShell title="Quản lý thương hiệu" description="Quản lý tên, slug, mô tả, logo và trạng thái của nhà sản xuất.">
-      <div className="flex flex-col gap-[12px] rounded-card border border-neutral-border bg-white p-[16px] md:flex-row">
-        <input value={filter} onChange={(event) => setFilter(event.target.value)} className="input-search flex-1" placeholder="Tìm thương hiệu..." />
-        <button onClick={openCreate} className="btn-primary h-[45px]">Thêm thương hiệu</button>
-      </div>
+    <AdminShell
+      title="Quản lý thương hiệu"
+      description="Quản lý tên, slug, mô tả, logo và trạng thái của nhà sản xuất."
+      actions={<button onClick={openCreate} className="btn-dark px-5 py-2.5 font-semibold text-sm">+ Thêm thương hiệu</button>}
+    >
+      <AdminToolbar>
+        <div className="relative flex-1">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input value={filter} onChange={e => setFilter(e.target.value)} className="input-form pl-10 w-full" placeholder="Tìm thương hiệu..." />
+        </div>
+      </AdminToolbar>
 
-      {error ? <AdminNotice type="error">{error}</AdminNotice> : null}
-      {message ? <AdminNotice type={message.startsWith('Đã') ? 'success' : 'error'}>{message}</AdminNotice> : null}
+      {error && <AdminNotice type="error">{error}</AdminNotice>}
+      {message && <AdminNotice type={message.startsWith('Đã') ? 'success' : 'error'}>{message}</AdminNotice>}
 
       {loading ? (
-        <LoadingTable columns={6} />
+        <LoadingTable columns={5} />
       ) : displayed.length ? (
-        <div className="overflow-x-auto rounded-card border border-neutral-light bg-white">
-          <table className="w-full min-w-[820px] text-left text-[14px]">
-            <thead className="bg-neutral-offwhite text-[12px] uppercase text-neutral-medium tracking-wide">
-              <tr>
-                <th className="px-[16px] py-[12px] font-bold">Tên</th>
-                <th className="px-[16px] py-[12px] font-bold">Slug</th>
-                <th className="px-[16px] py-[12px] font-bold">Mô tả</th>
-                <th className="px-[16px] py-[12px] font-bold">Sản phẩm</th>
-                <th className="px-[16px] py-[12px] font-bold">Trạng thái</th>
-                <th className="px-[16px] py-[12px] font-bold">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-light">
-              {displayed.map((brand) => (
-                <tr key={brand.id} className="text-neutral-dark hover:bg-neutral-offwhite">
-                  <td className="px-[16px] py-[16px] font-bold text-neutral-black">{brand.name}</td>
-                  <td className="px-[16px] py-[16px]">{brand.slug}</td>
-                  <td className="px-[16px] py-[16px] max-w-[320px] truncate">{brand.description ?? 'Chưa có mô tả'}</td>
-                  <td className="px-[16px] py-[16px]">{brand._count?.products ?? 0}</td>
-                  <td className="px-[16px] py-[16px]"><StatusBadge status={brand.isActive === false ? 'inactive' : 'active'}>{brand.isActive === false ? 'Tạm ẩn' : 'Đang hoạt động'}</StatusBadge></td>
-                  <td className="px-[16px] py-[16px]">
-                    <div className="flex gap-[8px]">
-                      <TableActionButton onClick={() => openEdit(brand)} tone="primary">Sửa</TableActionButton>
-                      <TableActionButton onClick={() => removeBrand(brand)} tone="danger">Xóa</TableActionButton>
-                    </div>
-                  </td>
-                </tr>
+        <AdminTable minWidth={820}>
+          <thead>
+            <tr>
+              {['Thương hiệu', 'Slug', 'Sản phẩm', 'Trạng thái', 'Thao tác'].map(h => (
+                <th key={h}>{h}</th>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </tr>
+          </thead>
+          <tbody>
+            {displayed.map(b => (
+              <tr key={b.id}>
+                <td>
+                  <div className="flex items-center gap-3">
+                    {b.logoUrl ? (
+                      <img src={b.logoUrl} alt={b.name} className="h-8 w-8 rounded object-contain bg-brand-offwhite p-1" />
+                    ) : (
+                      <div className="h-8 w-8 rounded bg-brand-offwhite flex items-center justify-center text-xs font-bold text-brand-muted">
+                        {b.name.slice(0, 2).toUpperCase()}
+                      </div>
+                    )}
+                    <div>
+                      <p className="font-semibold text-brand-black">{b.name}</p>
+                      {b.description && <p className="text-xs text-brand-muted mt-0.5 max-w-xs truncate">{b.description}</p>}
+                    </div>
+                  </div>
+                </td>
+                <td><code className="text-xs bg-brand-offwhite px-1.5 py-0.5 rounded">{b.slug}</code></td>
+                <td><span className="font-semibold">{b._count?.products ?? 0}</span></td>
+                <td><StatusBadge status={b.isActive === false ? 'inactive' : 'active'} /></td>
+                <td>
+                  <div className="flex gap-2">
+                    <TableActionButton onClick={() => openEdit(b)} tone="primary">Sửa</TableActionButton>
+                    <TableActionButton onClick={() => removeBrand(b)} tone="danger">Xóa</TableActionButton>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </AdminTable>
       ) : (
-        <EmptyState title="Không có thương hiệu" description="Hãy thêm thương hiệu đầu tiên cho catalog." />
+        <EmptyState title="Không có thương hiệu" description="Hãy thêm thương hiệu đầu tiên." />
       )}
 
-      {modalOpen ? (
+      {modalOpen && (
         <AdminModal title={form.id ? 'Cập nhật thương hiệu' : 'Thêm thương hiệu'} onClose={() => setModalOpen(false)}>
-          <form onSubmit={handleSubmit} className="grid gap-[16px]">
-            <div className="grid gap-[16px] md:grid-cols-2">
-              <label className="grid gap-[6px] text-[14px] font-bold text-neutral-black">Tên thương hiệu
-                <input value={form.name} onChange={(event) => setForm((value) => ({ ...value, name: event.target.value, slug: value.slug || slugify(event.target.value) }))} className="input-form w-full" />
-              </label>
-              <label className="grid gap-[6px] text-[14px] font-bold text-neutral-black">Slug
-                <input value={form.slug} onChange={(event) => setForm((value) => ({ ...value, slug: slugify(event.target.value) }))} className="input-form w-full" />
-              </label>
-              <label className="grid gap-[6px] text-[14px] font-bold text-neutral-black">Logo URL
-                <input value={form.logoUrl} onChange={(event) => setForm((value) => ({ ...value, logoUrl: event.target.value }))} className="input-form w-full" />
-              </label>
-              <label className="grid gap-[6px] text-[14px] font-bold text-neutral-black">Trạng thái
-                <select value={form.isActive ? 'active' : 'inactive'} onChange={(event) => setForm((value) => ({ ...value, isActive: event.target.value === 'active' }))} className="input-form w-full bg-white">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <ModalFormRow label="Tên thương hiệu *">
+                <input value={form.name} onChange={e => setForm(v => ({ ...v, name: e.target.value, slug: v.slug || slugify(e.target.value) }))} className="input-form w-full" required />
+              </ModalFormRow>
+              <ModalFormRow label="Slug *">
+                <input value={form.slug} onChange={e => setForm(v => ({ ...v, slug: slugify(e.target.value) }))} className="input-form w-full" required />
+              </ModalFormRow>
+              <ModalFormRow label="Logo URL">
+                <input value={form.logoUrl} onChange={e => setForm(v => ({ ...v, logoUrl: e.target.value }))} className="input-form w-full" placeholder="https://..." />
+              </ModalFormRow>
+              <ModalFormRow label="Trạng thái">
+                <select value={form.isActive ? 'active' : 'inactive'} onChange={e => setForm(v => ({ ...v, isActive: e.target.value === 'active' }))} className="select-form w-full">
                   <option value="active">Đang hoạt động</option>
                   <option value="inactive">Tạm ẩn</option>
                 </select>
-              </label>
+              </ModalFormRow>
             </div>
-            <label className="grid gap-[6px] text-[14px] font-bold text-neutral-black">Mô tả
-              <textarea value={form.description} onChange={(event) => setForm((value) => ({ ...value, description: event.target.value }))} className="min-h-[120px] rounded-none border border-neutral-inputLight px-[12px] py-[10px] text-[14px]" />
-            </label>
-            <div className="flex justify-end gap-[12px]">
-              <button type="button" onClick={() => setModalOpen(false)} className="rounded-btn border border-neutral-input px-[16px] py-[10px] font-bold text-neutral-black">Hủy</button>
-              <button disabled={saving} className="btn-primary h-[44px] px-[24px] disabled:opacity-60">{saving ? 'Đang lưu...' : 'Lưu thương hiệu'}</button>
-            </div>
+            {form.logoUrl && (
+              <div className="flex items-center gap-3 rounded-lg bg-brand-offwhite p-3">
+                <img src={form.logoUrl} alt="preview" className="h-10 w-10 object-contain rounded" />
+                <span className="text-xs text-brand-muted">Preview logo</span>
+              </div>
+            )}
+            <ModalFormRow label="Mô tả">
+              <textarea value={form.description} onChange={e => setForm(v => ({ ...v, description: e.target.value }))} className="textarea-form w-full" rows={3} />
+            </ModalFormRow>
+            {message && <AdminNotice type="error">{message}</AdminNotice>}
+            <ModalFormActions onClose={() => setModalOpen(false)} saving={saving} saveLabel={form.id ? 'Cập nhật' : 'Thêm thương hiệu'} />
           </form>
         </AdminModal>
-      ) : null}
+      )}
     </AdminShell>
   );
 }

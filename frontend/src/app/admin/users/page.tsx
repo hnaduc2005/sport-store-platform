@@ -1,8 +1,8 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useState } from 'react';
 import { AdminShell } from '@/components/admin-shell';
-import { AdminModal, AdminNotice, EmptyState, LoadingTable, StatusBadge, TableActionButton } from '@/components/admin-ui';
+import { AdminModal, AdminNotice, AdminTable, AdminToolbar, EmptyState, LoadingTable, StatusBadge, TableActionButton } from '@/components/admin-ui';
 import { ApiError, apiFetch, type PaginatedResponse, queryString } from '@/lib/api';
 import { formatDate, money } from '@/lib/format';
 
@@ -104,14 +104,17 @@ export default function AdminUsersPage() {
 
   return (
     <AdminShell title="Quản lý người dùng" description="Danh sách khách hàng và tài khoản quản trị; xem chi tiết và đổi vai trò có xác nhận.">
-      <div className="grid gap-[12px] rounded-card border border-neutral-border bg-white p-[16px] md:grid-cols-[1fr_220px]">
-        <input value={filters.q} onChange={(event) => setFilter({ q: event.target.value })} className="input-search w-full" placeholder="Tìm tên, email, số điện thoại..." />
-        <select value={filters.role} onChange={(event) => setFilter({ role: event.target.value })} className="input-form bg-white">
+      <AdminToolbar>
+        <div className="relative flex-1">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input value={filters.q} onChange={e => setFilter({ q: e.target.value })} className="input-form pl-10 w-full" placeholder="Tìm tên, email, số điện thoại..." />
+        </div>
+        <select value={filters.role} onChange={e => setFilter({ role: e.target.value })} className="select-form w-full sm:w-48">
           <option value="">Mọi vai trò</option>
           <option value="CUSTOMER">Khách hàng</option>
           <option value="ADMIN">Quản trị</option>
         </select>
-      </div>
+      </AdminToolbar>
 
       {error ? <AdminNotice type="error">{error}</AdminNotice> : null}
       {message ? <AdminNotice type={message.startsWith('Đã') ? 'success' : 'error'}>{message}</AdminNotice> : null}
@@ -119,77 +122,74 @@ export default function AdminUsersPage() {
       {loading ? (
         <LoadingTable columns={6} />
       ) : users.length ? (
-        <div className="overflow-x-auto rounded-card border border-neutral-light bg-white">
-          <table className="w-full min-w-[820px] text-left text-[14px]">
-            <thead className="bg-neutral-offwhite text-[12px] uppercase text-neutral-medium tracking-wide">
-              <tr>
-                <th className="px-[16px] py-[12px] font-bold">Người dùng</th>
-                <th className="px-[16px] py-[12px] font-bold">Email</th>
-                <th className="px-[16px] py-[12px] font-bold">SĐT</th>
-                <th className="px-[16px] py-[12px] font-bold">Vai trò</th>
-                <th className="px-[16px] py-[12px] font-bold">Đơn hàng</th>
-                <th className="px-[16px] py-[12px] font-bold">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-light">
-              {users.map((user) => (
-                <tr key={user.id} className="text-neutral-dark hover:bg-neutral-offwhite">
-                  <td className="px-[16px] py-[16px]">
-                    <p className="font-bold text-neutral-black">{user.name ?? 'Chưa có tên'}</p>
-                    <p className="text-[12px] text-neutral-medium">Tạo ngày {formatDate(user.createdAt)}</p>
-                  </td>
-                  <td className="px-[16px] py-[16px]">{user.email}</td>
-                  <td className="px-[16px] py-[16px]">{user.phone ?? 'Chưa có'}</td>
-                  <td className="px-[16px] py-[16px]">
-                    <select value={user.role} onChange={(event) => updateRole(user, event.target.value as User['role'])} className="h-[34px] rounded-btn border border-neutral-light bg-white px-[10px] text-[12px] font-bold">
-                      <option value="CUSTOMER">Khách hàng</option>
-                      <option value="ADMIN">Quản trị</option>
-                    </select>
-                  </td>
-                  <td className="px-[16px] py-[16px]">{user._count?.orders ?? 0}</td>
-                  <td className="px-[16px] py-[16px]"><TableActionButton onClick={() => openDetail(user)} tone="primary">Chi tiết</TableActionButton></td>
-                </tr>
+        <AdminTable minWidth={820}>
+          <thead>
+            <tr>
+              {['Người dùng', 'Email', 'SĐT', 'Vai trò', 'Đơn hàng', 'Thao tác'].map(h => (
+                <th key={h}>{h}</th>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </tr>
+          </thead>
+          <tbody>
+            {users.map((user) => (
+              <tr key={user.id}>
+                <td>
+                  <p className="font-bold text-brand-black">{user.name ?? 'Chưa có tên'}</p>
+                  <p className="text-xs text-brand-muted mt-0.5">Tạo ngày {formatDate(user.createdAt)}</p>
+                </td>
+                <td>{user.email}</td>
+                <td>{user.phone ?? 'Chưa có'}</td>
+                <td>
+                  <select value={user.role} onChange={e => updateRole(user, e.target.value as User['role'])} className="select-form h-9 py-1 text-xs w-32">
+                    <option value="CUSTOMER">Khách hàng</option>
+                    <option value="ADMIN">Quản trị</option>
+                  </select>
+                </td>
+                <td><span className="font-semibold">{user._count?.orders ?? 0}</span></td>
+                <td>
+                  <TableActionButton onClick={() => openDetail(user)} tone="primary">Chi tiết</TableActionButton>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </AdminTable>
       ) : (
         <EmptyState title="Không có người dùng" description="Thử thay đổi bộ lọc tìm kiếm." />
       )}
 
-      <div className="flex flex-col justify-between gap-[12px] text-[14px] text-neutral-medium sm:flex-row sm:items-center">
-        <span>Trang {meta.page}/{meta.pageCount}, tổng {meta.total} người dùng</span>
-        <div className="flex gap-[8px]">
-          <button disabled={meta.page <= 1} onClick={() => setFilters((current) => ({ ...current, page: current.page - 1 }))} className="rounded-btn border border-neutral-light px-[12px] py-[8px] font-bold disabled:opacity-50">Trước</button>
-          <button disabled={meta.page >= meta.pageCount} onClick={() => setFilters((current) => ({ ...current, page: current.page + 1 }))} className="rounded-btn border border-neutral-light px-[12px] py-[8px] font-bold disabled:opacity-50">Sau</button>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-sm text-brand-muted">
+        <span>Trang {meta.page}/{meta.pageCount} · Tổng {meta.total} người dùng</span>
+        <div className="flex gap-2">
+          <button disabled={meta.page <= 1} onClick={() => setFilters(c => ({ ...c, page: c.page - 1 }))} className="btn-outline px-4 py-2 text-sm disabled:opacity-40">← Trước</button>
+          <button disabled={meta.page >= meta.pageCount} onClick={() => setFilters(c => ({ ...c, page: c.page + 1 }))} className="btn-outline px-4 py-2 text-sm disabled:opacity-40">Sau →</button>
         </div>
       </div>
 
       {selectedUser ? (
         <AdminModal title={selectedUser.name ?? selectedUser.email} description="Thông tin chi tiết người dùng." onClose={() => setSelectedUser(null)}>
           {detailLoading ? (
-            <div className="h-[160px] animate-pulse rounded-card bg-neutral-offwhite" />
+            <div className="skeleton h-40" />
           ) : (
-            <div className="grid gap-[20px]">
-              <div className="grid gap-[16px] md:grid-cols-3">
-                <div className="rounded-card border border-neutral-light p-[16px]"><p className="text-neutral-medium">Vai trò</p><div className="mt-[8px]"><StatusBadge status={selectedUser.role} /></div></div>
-                <div className="rounded-card border border-neutral-light p-[16px]"><p className="text-neutral-medium">Đơn hàng</p><p className="mt-[8px] text-[24px] font-bold">{selectedUser.orders?.length ?? selectedUser._count?.orders ?? 0}</p></div>
-                <div className="rounded-card border border-neutral-light p-[16px]"><p className="text-neutral-medium">Đánh giá</p><p className="mt-[8px] text-[24px] font-bold">{selectedUser.reviews?.length ?? selectedUser._count?.reviews ?? 0}</p></div>
+            <div className="space-y-5">
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="rounded-xl border border-brand-light p-4"><p className="text-sm text-brand-muted">Vai trò</p><div className="mt-2"><StatusBadge status={selectedUser.role} /></div></div>
+                <div className="rounded-xl border border-brand-light p-4"><p className="text-sm text-brand-muted">Đơn hàng</p><p className="mt-2 text-2xl font-bold text-brand-black">{selectedUser.orders?.length ?? selectedUser._count?.orders ?? 0}</p></div>
+                <div className="rounded-xl border border-brand-light p-4"><p className="text-sm text-brand-muted">Đánh giá</p><p className="mt-2 text-2xl font-bold text-brand-black">{selectedUser.reviews?.length ?? selectedUser._count?.reviews ?? 0}</p></div>
               </div>
-              <div className="rounded-card border border-neutral-light p-[16px] text-[14px]">
-                <p><b>Email:</b> {selectedUser.email}</p>
-                <p className="mt-[8px]"><b>Số điện thoại:</b> {selectedUser.phone ?? 'Chưa có'}</p>
-                <p className="mt-[8px]"><b>Ngày tạo:</b> {formatDate(selectedUser.createdAt)}</p>
+              <div className="rounded-xl border border-brand-light p-4 text-sm space-y-2 text-brand-black">
+                <p><span className="text-brand-muted w-24 inline-block">Email:</span> {selectedUser.email}</p>
+                <p><span className="text-brand-muted w-24 inline-block">SĐT:</span> {selectedUser.phone ?? 'Chưa có'}</p>
+                <p><span className="text-brand-muted w-24 inline-block">Ngày tạo:</span> {formatDate(selectedUser.createdAt)}</p>
               </div>
-              <div className="rounded-card border border-neutral-light p-[16px]">
-                <h3 className="text-[18px] font-bold text-neutral-black">Đơn hàng gần đây</h3>
-                <div className="mt-[12px] grid gap-[8px]">
-                  {selectedUser.orders?.length ? selectedUser.orders.map((order) => (
-                    <div key={order.id} className="flex justify-between gap-[12px] rounded-card bg-neutral-offwhite p-[12px] text-[14px]">
-                      <span>{order.code}</span>
-                      <b>{money(order.total)}</b>
+              <div className="rounded-xl border border-brand-light p-4">
+                <h3 className="text-lg font-bold text-brand-black mb-3">Đơn hàng gần đây</h3>
+                <div className="space-y-2">
+                  {selectedUser.orders?.length ? selectedUser.orders.map(order => (
+                    <div key={order.id} className="flex justify-between items-center gap-3 rounded-lg bg-brand-offwhite p-3 text-sm">
+                      <span className="font-mono font-bold text-brand-black">{order.code}</span>
+                      <span className="font-bold text-brand-black">{money(order.total)}</span>
                     </div>
-                  )) : <p className="text-[14px] text-neutral-medium">Chưa có đơn hàng.</p>}
+                  )) : <p className="text-sm text-brand-muted">Chưa có đơn hàng.</p>}
                 </div>
               </div>
             </div>

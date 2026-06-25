@@ -1,8 +1,8 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useState } from 'react';
 import { AdminShell } from '@/components/admin-shell';
-import { AdminModal, AdminNotice, EmptyState, LoadingBlocks, StatusBadge, TableActionButton } from '@/components/admin-ui';
+import { AdminModal, AdminNotice, AdminToolbar, EmptyState, LoadingBlocks, StatusBadge, TableActionButton } from '@/components/admin-ui';
 import { ApiError, apiFetch, type PaginatedResponse, queryString } from '@/lib/api';
 import { formatDateTime, statusLabel } from '@/lib/format';
 import type { ContactFeedback } from '@/lib/mock-data';
@@ -71,13 +71,16 @@ export default function AdminFeedbackPage() {
 
   return (
     <AdminShell title="Quản lý feedback" description="Theo dõi liên hệ, phản hồi và trạng thái xử lý từ khách hàng.">
-      <div className="grid gap-[12px] rounded-card border border-neutral-border bg-white p-[16px] md:grid-cols-[1fr_220px]">
-        <input value={filters.q} onChange={(event) => setFilter({ q: event.target.value })} className="input-search w-full" placeholder="Tìm tên, email, chủ đề, nội dung..." />
-        <select value={filters.status} onChange={(event) => setFilter({ status: event.target.value })} className="input-form bg-white">
+      <AdminToolbar>
+        <div className="relative flex-1">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input value={filters.q} onChange={(event) => setFilter({ q: event.target.value })} className="input-form pl-10 w-full" placeholder="Tìm tên, email, chủ đề, nội dung..." />
+        </div>
+        <select value={filters.status} onChange={(event) => setFilter({ status: event.target.value })} className="select-form w-full md:w-48">
           <option value="">Mọi trạng thái</option>
           {['NEW', 'READ', 'RESOLVED'].map((status) => <option key={status} value={status}>{statusLabel(status)}</option>)}
         </select>
-      </div>
+      </AdminToolbar>
 
       {error ? <AdminNotice type="error">{error}</AdminNotice> : null}
       {message ? <AdminNotice type={message.startsWith('Đã') ? 'success' : 'error'}>{message}</AdminNotice> : null}
@@ -85,21 +88,21 @@ export default function AdminFeedbackPage() {
       {loading ? (
         <LoadingBlocks count={4} />
       ) : contacts.length ? (
-        <div className="grid gap-[16px]">
+        <div className="space-y-4">
           {contacts.map((contact) => (
-            <div key={contact.id} className="rounded-card border border-neutral-border bg-white p-[20px]">
-              <div className="flex flex-col justify-between gap-[16px] lg:flex-row lg:items-start">
+            <div key={contact.id} className="rounded-xl border border-brand-light bg-white p-5">
+              <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
                 <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-[8px]">
-                    <p className="font-bold text-[16px] text-neutral-black">{contact.subject}</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-bold text-base text-brand-black">{contact.subject}</p>
                     <StatusBadge status={contact.status} />
                   </div>
-                  <p className="mt-[4px] text-[14px] text-neutral-medium">{contact.name} • {contact.email} • {contact.phone ?? 'Chưa có SĐT'} • {formatDateTime(contact.createdAt)}</p>
-                  <p className="mt-[12px] line-clamp-2 text-[14px] leading-[21px] text-neutral-dark">{contact.message}</p>
+                  <p className="mt-1 text-sm text-brand-muted">{contact.name} • {contact.email} • {contact.phone ?? 'Chưa có SĐT'} • {formatDateTime(contact.createdAt)}</p>
+                  <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-brand-dark">{contact.message}</p>
                 </div>
-                <div className="flex shrink-0 flex-wrap gap-[8px]">
+                <div className="flex shrink-0 flex-wrap gap-2">
                   <TableActionButton onClick={() => setSelectedContact(contact)} tone="primary">Xem</TableActionButton>
-                  <select value={contact.status} onChange={(event) => updateStatus(contact, event.target.value as ContactFeedback['status'])} className="h-[34px] rounded-btn border border-neutral-light bg-white px-[10px] text-[12px] font-bold">
+                  <select value={contact.status} onChange={(event) => updateStatus(contact, event.target.value as ContactFeedback['status'])} className="select-form h-9 py-1 text-xs w-32">
                     {['NEW', 'READ', 'RESOLVED'].map((status) => <option key={status} value={status}>{statusLabel(status)}</option>)}
                   </select>
                   <TableActionButton onClick={() => removeContact(contact)} tone="danger">Xóa</TableActionButton>
@@ -112,29 +115,29 @@ export default function AdminFeedbackPage() {
         <EmptyState title="Không có feedback" description="Phản hồi mới từ khách hàng sẽ xuất hiện tại đây." />
       )}
 
-      <div className="flex flex-col justify-between gap-[12px] text-[14px] text-neutral-medium sm:flex-row sm:items-center">
-        <span>Trang {meta.page}/{meta.pageCount}, tổng {meta.total} feedback</span>
-        <div className="flex gap-[8px]">
-          <button disabled={meta.page <= 1} onClick={() => setFilters((current) => ({ ...current, page: current.page - 1 }))} className="rounded-btn border border-neutral-light px-[12px] py-[8px] font-bold disabled:opacity-50">Trước</button>
-          <button disabled={meta.page >= meta.pageCount} onClick={() => setFilters((current) => ({ ...current, page: current.page + 1 }))} className="rounded-btn border border-neutral-light px-[12px] py-[8px] font-bold disabled:opacity-50">Sau</button>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-sm text-brand-muted">
+        <span>Trang {meta.page}/{meta.pageCount} · Tổng {meta.total} feedback</span>
+        <div className="flex gap-2">
+          <button disabled={meta.page <= 1} onClick={() => setFilters((current) => ({ ...current, page: current.page - 1 }))} className="btn-outline px-4 py-2 text-sm disabled:opacity-40">← Trước</button>
+          <button disabled={meta.page >= meta.pageCount} onClick={() => setFilters((current) => ({ ...current, page: current.page + 1 }))} className="btn-outline px-4 py-2 text-sm disabled:opacity-40">Sau →</button>
         </div>
       </div>
 
       {selectedContact ? (
         <AdminModal title={selectedContact.subject} description="Nội dung phản hồi đầy đủ từ khách hàng." onClose={() => setSelectedContact(null)}>
-          <div className="grid gap-[16px]">
-            <div className="rounded-card border border-neutral-light p-[16px] text-[14px] text-neutral-dark">
-              <p><b>Khách hàng:</b> {selectedContact.name}</p>
-              <p className="mt-[8px]"><b>Email:</b> {selectedContact.email}</p>
-              <p className="mt-[8px]"><b>SĐT:</b> {selectedContact.phone ?? 'Chưa có'}</p>
-              <p className="mt-[8px]"><b>Ngày gửi:</b> {formatDateTime(selectedContact.createdAt)}</p>
+          <div className="space-y-4 text-sm text-brand-dark">
+            <div className="rounded-xl border border-brand-light p-4">
+              <p><b className="text-brand-black">Khách hàng:</b> {selectedContact.name}</p>
+              <p className="mt-2"><b className="text-brand-black">Email:</b> {selectedContact.email}</p>
+              <p className="mt-2"><b className="text-brand-black">SĐT:</b> {selectedContact.phone ?? 'Chưa có'}</p>
+              <p className="mt-2"><b className="text-brand-black">Ngày gửi:</b> {formatDateTime(selectedContact.createdAt)}</p>
             </div>
-            <div className="rounded-card bg-neutral-offwhite p-[16px] text-[14px] leading-[24px] text-neutral-dark">{selectedContact.message}</div>
-            <div className="flex flex-col gap-[12px] sm:flex-row sm:items-center sm:justify-between">
-              <select value={selectedContact.status} onChange={(event) => updateStatus(selectedContact, event.target.value as ContactFeedback['status'])} className="input-form bg-white sm:w-[220px]">
+            <div className="rounded-xl bg-brand-offwhite p-4 leading-relaxed">{selectedContact.message}</div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-t border-brand-light pt-2">
+              <select value={selectedContact.status} onChange={(event) => updateStatus(selectedContact, event.target.value as ContactFeedback['status'])} className="select-form sm:w-56">
                 {['NEW', 'READ', 'RESOLVED'].map((status) => <option key={status} value={status}>{statusLabel(status)}</option>)}
               </select>
-              <button onClick={() => removeContact(selectedContact)} className="rounded-btn border border-alert-dark px-[16px] py-[10px] font-bold text-alert-dark hover:bg-[#fef2f2]">Xóa feedback</button>
+              <button onClick={() => removeContact(selectedContact)} className="btn-danger px-4 py-2">Xóa feedback</button>
             </div>
           </div>
         </AdminModal>

@@ -1,8 +1,8 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useState } from 'react';
 import { AdminShell } from '@/components/admin-shell';
-import { AdminModal, AdminNotice, EmptyState, LoadingBlocks, StatusBadge, TableActionButton } from '@/components/admin-ui';
+import { AdminModal, AdminNotice, AdminToolbar, EmptyState, LoadingBlocks, StatusBadge, TableActionButton } from '@/components/admin-ui';
 import { ApiError, apiFetch, type PaginatedResponse, queryString } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
 import type { Product, Review } from '@/lib/mock-data';
@@ -84,21 +84,21 @@ export default function AdminReviewsPage() {
 
   return (
     <AdminShell title="Quản lý đánh giá" description="Lọc, duyệt, ẩn/hiện hoặc xóa đánh giá sản phẩm từ khách hàng.">
-      <div className="grid gap-[12px] rounded-card border border-neutral-border bg-white p-[16px] md:grid-cols-3">
-        <select value={filters.productId} onChange={(event) => setFilter({ productId: event.target.value })} className="input-form bg-white">
+      <AdminToolbar>
+        <select value={filters.productId} onChange={(event) => setFilter({ productId: event.target.value })} className="select-form w-full md:w-auto flex-1">
           <option value="">Tất cả sản phẩm</option>
           {products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
         </select>
-        <select value={filters.rating} onChange={(event) => setFilter({ rating: event.target.value })} className="input-form bg-white">
+        <select value={filters.rating} onChange={(event) => setFilter({ rating: event.target.value })} className="select-form w-full md:w-40">
           <option value="">Mọi số sao</option>
           {[5, 4, 3, 2, 1].map((rating) => <option key={rating} value={rating}>{rating} sao</option>)}
         </select>
-        <select value={filters.visibility} onChange={(event) => setFilter({ visibility: event.target.value })} className="input-form bg-white">
+        <select value={filters.visibility} onChange={(event) => setFilter({ visibility: event.target.value })} className="select-form w-full md:w-48">
           <option value="all">Tất cả trạng thái</option>
           <option value="visible">Đang hiển thị</option>
           <option value="hidden">Đang ẩn</option>
         </select>
-      </div>
+      </AdminToolbar>
 
       {error ? <AdminNotice type="error">{error}</AdminNotice> : null}
       {message ? <AdminNotice type={message.startsWith('Đã') ? 'success' : 'error'}>{message}</AdminNotice> : null}
@@ -106,22 +106,22 @@ export default function AdminReviewsPage() {
       {loading ? (
         <LoadingBlocks count={4} />
       ) : reviews.length ? (
-        <div className="grid gap-[16px]">
+        <div className="space-y-4">
           {reviews.map((review) => (
-            <div key={review.id} className="rounded-card border border-neutral-border bg-white p-[20px]">
-              <div className="flex flex-col justify-between gap-[16px] lg:flex-row lg:items-start">
+            <div key={review.id} className="rounded-xl border border-brand-light bg-white p-5">
+              <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
                 <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-[8px]">
-                    <p className="font-bold text-[16px] text-neutral-black">{productName(review)}</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-bold text-base text-brand-black">{productName(review)}</p>
                     <StatusBadge status={review.isVisible === false ? 'inactive' : 'active'}>{review.isVisible === false ? 'Đang ẩn' : 'Hiển thị'}</StatusBadge>
                   </div>
-                  <p className="mt-[4px] text-[14px] text-neutral-medium">
+                  <p className="mt-1 text-sm text-brand-muted">
                     {review.user?.name ?? review.user?.email ?? 'Khách hàng'} • {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)} • {formatDateTime(review.createdAt)}
                   </p>
-                  <p className="mt-[12px] text-[14px] leading-[21px] text-neutral-dark">{review.comment || 'Không có nội dung.'}</p>
+                  <p className="mt-3 text-sm leading-relaxed text-brand-dark">{review.comment || 'Không có nội dung.'}</p>
                 </div>
-                <div className="flex shrink-0 gap-[8px]">
-                  <TableActionButton onClick={() => setSelectedReview(review)} tone="neutral">Chi tiết</TableActionButton>
+                <div className="flex shrink-0 gap-2">
+                  <TableActionButton onClick={() => setSelectedReview(review)} tone="ghost">Chi tiết</TableActionButton>
                   <TableActionButton onClick={() => updateVisibility(review, !(review.isVisible ?? true))} tone="primary">
                     {review.isVisible === false ? 'Hiện' : 'Ẩn'}
                   </TableActionButton>
@@ -135,26 +135,26 @@ export default function AdminReviewsPage() {
         <EmptyState title="Không có đánh giá" description="Đánh giá mới từ khách hàng sẽ xuất hiện tại đây." />
       )}
 
-      <div className="flex flex-col justify-between gap-[12px] text-[14px] text-neutral-medium sm:flex-row sm:items-center">
-        <span>Trang {meta.page}/{meta.pageCount}, tổng {meta.total} đánh giá</span>
-        <div className="flex gap-[8px]">
-          <button disabled={meta.page <= 1} onClick={() => setFilters((current) => ({ ...current, page: current.page - 1 }))} className="rounded-btn border border-neutral-light px-[12px] py-[8px] font-bold disabled:opacity-50">Trước</button>
-          <button disabled={meta.page >= meta.pageCount} onClick={() => setFilters((current) => ({ ...current, page: current.page + 1 }))} className="rounded-btn border border-neutral-light px-[12px] py-[8px] font-bold disabled:opacity-50">Sau</button>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-sm text-brand-muted">
+        <span>Trang {meta.page}/{meta.pageCount} · Tổng {meta.total} đánh giá</span>
+        <div className="flex gap-2">
+          <button disabled={meta.page <= 1} onClick={() => setFilters((current) => ({ ...current, page: current.page - 1 }))} className="btn-outline px-4 py-2 text-sm disabled:opacity-40">← Trước</button>
+          <button disabled={meta.page >= meta.pageCount} onClick={() => setFilters((current) => ({ ...current, page: current.page + 1 }))} className="btn-outline px-4 py-2 text-sm disabled:opacity-40">Sau →</button>
         </div>
       </div>
 
       {selectedReview ? (
         <AdminModal title={`Đánh giá ${productName(selectedReview)}`} description="Thông tin chi tiết đánh giá từ khách hàng." onClose={() => setSelectedReview(null)}>
-          <div className="grid gap-[16px] text-[14px] text-neutral-dark">
-            <div className="rounded-card border border-neutral-light p-[16px]">
-              <p><b>Sản phẩm:</b> {productName(selectedReview)}</p>
-              <p className="mt-[8px]"><b>Người gửi:</b> {selectedReview.user?.name ?? selectedReview.user?.email ?? 'Khách hàng'}</p>
-              <p className="mt-[8px]"><b>Số sao:</b> {'★'.repeat(selectedReview.rating)}{'☆'.repeat(5 - selectedReview.rating)}</p>
-              <p className="mt-[8px]"><b>Ngày tạo:</b> {formatDateTime(selectedReview.createdAt)}</p>
-              <div className="mt-[8px]"><StatusBadge status={selectedReview.isVisible === false ? 'inactive' : 'active'}>{selectedReview.isVisible === false ? 'Đang ẩn' : 'Hiển thị'}</StatusBadge></div>
+          <div className="space-y-4 text-sm text-brand-dark">
+            <div className="rounded-xl border border-brand-light p-4">
+              <p><b className="text-brand-black">Sản phẩm:</b> {productName(selectedReview)}</p>
+              <p className="mt-2"><b className="text-brand-black">Người gửi:</b> {selectedReview.user?.name ?? selectedReview.user?.email ?? 'Khách hàng'}</p>
+              <p className="mt-2"><b className="text-brand-black">Số sao:</b> <span className="text-accent">{'★'.repeat(selectedReview.rating)}{'☆'.repeat(5 - selectedReview.rating)}</span></p>
+              <p className="mt-2"><b className="text-brand-black">Ngày tạo:</b> {formatDateTime(selectedReview.createdAt)}</p>
+              <div className="mt-3"><StatusBadge status={selectedReview.isVisible === false ? 'inactive' : 'active'}>{selectedReview.isVisible === false ? 'Đang ẩn' : 'Hiển thị'}</StatusBadge></div>
             </div>
-            <div className="rounded-card bg-neutral-offwhite p-[16px] leading-[24px]">{selectedReview.comment || 'Không có nội dung.'}</div>
-            <div className="flex justify-end gap-[8px]">
+            <div className="rounded-xl bg-brand-offwhite p-4 leading-relaxed">{selectedReview.comment || 'Không có nội dung.'}</div>
+            <div className="flex justify-end gap-2 pt-2 border-t border-brand-light">
               <TableActionButton onClick={() => updateVisibility(selectedReview, !(selectedReview.isVisible ?? true))} tone="primary">{selectedReview.isVisible === false ? 'Hiện đánh giá' : 'Ẩn đánh giá'}</TableActionButton>
               <TableActionButton onClick={() => removeReview(selectedReview)} tone="danger">Ẩn mềm</TableActionButton>
             </div>
