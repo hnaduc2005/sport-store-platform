@@ -39,9 +39,9 @@ export default function RegisterPage() {
         <div className="rounded-2xl border border-brand-light bg-white p-8 shadow-md">
           {/* Logo */}
           <div className="flex items-center gap-3 mb-8">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-black font-black text-sm text-white">BS</div>
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-black font-black text-sm text-white">T3</div>
             <div>
-              <p className="font-black text-brand-black leading-none">Big<span className="text-accent">Sport</span></p>
+              <p className="font-black text-brand-black leading-none">T3<span className="text-accent">Sport</span></p>
               <p className="text-xs text-brand-muted mt-0.5">Cửa hàng thể thao</p>
             </div>
           </div>

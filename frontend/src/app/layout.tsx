@@ -5,14 +5,14 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: {
-    default: 'BigSport Store — Đồ Thể Thao Chính Hãng',
-    template: '%s | BigSport Store',
+    default: 'T3Sport Store — Đồ Thể Thao Chính Hãng',
+    template: '%s | T3Sport Store',
   },
   description:
-    'BigSport Store — Cửa hàng thể thao chính hãng: giày chạy bộ, trang phục gym, bóng đá, bóng rổ và phụ kiện luyện tập chất lượng cao.',
-  keywords: ['đồ thể thao', 'giày chạy bộ', 'gym', 'bóng đá', 'bóng rổ', 'BigSport'],
+    'T3Sport Store — Cửa hàng thể thao chính hãng: giày chạy bộ, trang phục gym, bóng đá, bóng rổ và phụ kiện luyện tập chất lượng cao.',
+  keywords: ['đồ thể thao', 'giày chạy bộ', 'gym', 'bóng đá', 'bóng rổ', 'T3Sport'],
   openGraph: {
-    siteName: 'BigSport Store',
+    siteName: 'T3Sport Store',
     locale: 'vi_VN',
     type: 'website',
   },
@@ -89,10 +89,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               <div>
                 <Link href="/" className="inline-flex items-center gap-2.5 mb-4">
                   <div className="flex h-9 w-9 items-center justify-center rounded-btn bg-accent font-black text-sm text-white">
-                    BS
+                    T3
                   </div>
                   <span className="text-xl font-black text-white tracking-tight">
-                    Big<span className="text-accent">Sport</span>
+                    T3<span className="text-accent">Sport</span>
                   </span>
                 </Link>
                 <p className="text-sm leading-relaxed text-gray-400 max-w-xs">
@@ -166,7 +166,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 
           {/* Bottom bar */}
           <div className="mx-auto max-w-container px-4 sm:px-6 lg:px-8 py-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between text-xs text-gray-500">
-            <p>© {new Date().getFullYear()} BigSport Store. Bảo lưu mọi quyền.</p>
+            <p>© {new Date().getFullYear()} T3Sport Store. Bảo lưu mọi quyền.</p>
             <div className="flex gap-4">
               <Link href="/policies/returns" className="hover:text-gray-300 transition-colors">Đổi trả</Link>
               <Link href="/policies/warranty" className="hover:text-gray-300 transition-colors">Bảo hành</Link>

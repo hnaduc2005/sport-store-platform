@@ -139,10 +139,10 @@ export function AdminShell({ title, description, actions, children }: AdminShell
       {/* Brand */}
       <div className="flex items-center gap-3 px-5 py-5 border-b border-white/10">
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent font-black text-sm text-white flex-shrink-0">
-          BS
+          T3
         </div>
         <div>
-          <p className="font-black text-white text-sm leading-none">BigSport</p>
+          <p className="font-black text-white text-sm leading-none">T3Sport</p>
           <p className="text-gray-500 text-xs mt-0.5">Admin Panel</p>
         </div>
       </div>

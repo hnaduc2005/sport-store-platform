@@ -110,10 +110,10 @@ export function SiteHeader() {
             className="group flex min-w-fit items-center gap-2.5 py-4 transition-opacity hover:opacity-90"
           >
             <div className="flex h-8 w-8 items-center justify-center rounded-btn bg-accent text-white font-black text-xs tracking-wider">
-              BS
+              T3
             </div>
             <span className="text-base font-black text-white tracking-tight">
-              Big<span className="text-accent">Sport</span>
+              T3<span className="text-accent">Sport</span>
             </span>
           </Link>
 
