@@ -53,6 +53,16 @@ export default function CheckoutPage() {
     if (!session) { setMessage('Vui lòng đăng nhập trước khi đặt hàng.'); setMessageType('error'); return; }
     setSubmitting(true); setMessage('');
     try {
+      // Sync cart local → DB trước khi đặt hàng
+      await Promise.allSettled(
+        items.map(item =>
+          apiFetch(`/cart/${session.user.id}/items`, {
+            method: 'POST',
+            body: JSON.stringify({ productId: item.product.id, quantity: item.quantity }),
+          })
+        )
+      );
+
       const order = await apiFetch<Order>('/orders', {
         method: 'POST',
         body: JSON.stringify({

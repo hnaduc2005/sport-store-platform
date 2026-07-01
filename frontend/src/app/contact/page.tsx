@@ -6,7 +6,7 @@ import { apiFetch } from '@/lib/api';
 const storeInfo = [
   { icon: '📍', label: 'Địa chỉ', value: '12 Nguyễn Huệ, Quận 1, TP. Hồ Chí Minh' },
   { icon: '📞', label: 'Hotline', value: '0901 234 567' },
-  { icon: '✉️', label: 'Email', value: 'support@bigsport.demo' },
+  { icon: '✉️', label: 'Email', value: 'support@t3sport.com' },
   { icon: '🕐', label: 'Giờ mở cửa', value: '8:00 – 21:00 hằng ngày' },
 ];
 
@@ -38,9 +38,9 @@ export default function ContactPage() {
       {/* Header */}
       <div className="mb-10 text-center">
         <span className="section-label">Liên hệ</span>
-        <h1 className="section-title mt-2">Gửi phản hồi cho BigSport</h1>
+        <h1 className="section-title mt-2">Gửi phản hồi cho T3Sport</h1>
         <p className="mt-3 text-brand-muted max-w-lg mx-auto">
-          Có câu hỏi về sản phẩm, đơn hàng hoặc cần tư vấn? Đội ngũ BigSport luôn sẵn sàng hỗ trợ bạn.
+          Có câu hỏi về sản phẩm, đơn hàng hoặc cần tư vấn? Đội ngũ T3Sport luôn sẵn sàng hỗ trợ bạn.
         </p>
       </div>
 
@@ -122,7 +122,7 @@ export default function ContactPage() {
           {/* Map */}
           <div className="overflow-hidden rounded-xl border border-brand-light">
             <iframe
-              title="Bản đồ BigSport Store"
+              title="Bản đồ T3Sport Store"
               src="https://www.google.com/maps?q=Nguyen%20Hue%20Ho%20Chi%20Minh%20City&output=embed"
               className="h-60 w-full"
               loading="lazy"
@@ -136,7 +136,7 @@ export default function ContactPage() {
               <p className="text-xs font-bold text-brand-black">Gọi ngay</p>
               <p className="text-xs text-brand-muted mt-0.5">0901 234 567</p>
             </a>
-            <a href="mailto:support@bigsport.demo" className="form-section text-center hover:border-accent transition-colors">
+            <a href="mailto:support@t3sport.com" className="form-section text-center hover:border-accent transition-colors">
               <p className="text-2xl mb-1">✉️</p>
               <p className="text-xs font-bold text-brand-black">Email</p>
               <p className="text-xs text-brand-muted mt-0.5">support@...</p>
