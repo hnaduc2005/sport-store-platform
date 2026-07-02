@@ -88,7 +88,12 @@ export class OrdersService {
     return this.prisma.order.findMany({
       where: { userId },
       include: {
-        items: true,
+        items: {
+          include: {
+            product: true,
+            variant: true,
+          },
+        },
         coupon: true,
       },
       orderBy: { createdAt: 'desc' },

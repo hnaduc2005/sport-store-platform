@@ -74,6 +74,8 @@ export type Order = {
     unitPrice: number | string;
     quantity: number;
     total: number | string;
+    product?: Product;
+    variant?: any;
   }>;
 };
 
@@ -356,6 +358,7 @@ export const demoOrders: Order[] = [
         unitPrice: 2490000,
         quantity: 1,
         total: 2490000,
+        product: products[0],
       },
     ],
   },

@@ -62,9 +62,22 @@ function OrderCard({ order }: { order: Order }) {
         <div className="divide-y divide-brand-light border-t border-brand-light animate-fade-in">
           {(order.items ?? []).map(item => (
             <div key={item.id} className="flex items-center justify-between gap-4 px-5 py-3 text-sm">
-              <div className="min-w-0">
-                <p className="font-medium text-brand-black line-clamp-1">{item.productName}</p>
-                <p className="text-xs text-brand-muted mt-0.5">×{item.quantity} · {money(item.unitPrice)}/sp</p>
+              <div className="flex items-center gap-4 min-w-0">
+                {item.product?.images?.[0] ? (
+                  <img src={item.product.images[0]} alt={item.productName} className="w-12 h-12 object-cover rounded-md bg-brand-light/50 shrink-0 border border-brand-light" />
+                ) : (
+                  <div className="w-12 h-12 rounded-md bg-brand-light/50 shrink-0 flex items-center justify-center text-xs text-brand-muted border border-brand-light">
+                    Ảnh
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <p className="font-medium text-brand-black line-clamp-1">{item.productName}</p>
+                  <p className="text-xs text-brand-muted mt-0.5">
+                    {/* @ts-expect-error Types missing variantName occasionally */}
+                    {item.variantName ? `${item.variantName} · ` : ''}
+                    ×{item.quantity} · {money(item.unitPrice)}/sp
+                  </p>
+                </div>
               </div>
               <span className="font-bold text-brand-black whitespace-nowrap">{money(item.total)}</span>
             </div>

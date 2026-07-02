@@ -26,7 +26,7 @@ export class AuthService {
     });
 
     if (existing) {
-      throw new ConflictException('Email already exists');
+      throw new ConflictException('Email này đã được sử dụng');
     }
 
     const user = await this.prisma.user.create({
@@ -61,7 +61,7 @@ export class AuthService {
     });
 
     if (!user || user.password !== dto.password) {
-      throw new UnauthorizedException('Email or password is incorrect');
+      throw new UnauthorizedException('Email hoặc mật khẩu không chính xác');
     }
 
     const { password: _password, ...safeUser } = user;

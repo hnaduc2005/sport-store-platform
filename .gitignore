@@ -10,4 +10,5 @@ pnpm-lock.yaml
 yarn.lock
 prisma/dev.db
 backend/uploads
+tsconfig.tsbuildinfo
 

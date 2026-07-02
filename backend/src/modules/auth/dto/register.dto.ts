@@ -2,14 +2,14 @@ import { IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
 
 export class RegisterDto {
   @IsOptional()
-  @IsString()
+  @IsString({ message: 'Tên phải là chuỗi' })
   name?: string;
 
-  @IsEmail()
+  @IsEmail({}, { message: 'Email không hợp lệ' })
   email!: string;
 
-  @IsString()
-  @MinLength(6)
+  @IsString({ message: 'Mật khẩu phải là chuỗi' })
+  @MinLength(6, { message: 'Mật khẩu phải có ít nhất 6 ký tự' })
   password!: string;
 }
 

@@ -26,21 +26,6 @@ export default function LoginPage() {
       saveSession(session);
       router.push(session.user.role === 'ADMIN' ? '/admin/dashboard' : '/profile');
     } catch (error) {
-      if (process.env.NODE_ENV !== 'production') {
-        const fallback: Session = {
-          user: {
-            id: email.includes('admin') ? 'demo-admin' : 'demo-customer',
-            name: email.includes('admin') ? 'Demo Admin' : 'Demo Customer',
-            email,
-            role: email.includes('admin') ? 'ADMIN' : 'CUSTOMER',
-          },
-          accessToken: 'offline-demo-token',
-        };
-        saveSession(fallback);
-        setMessage('API chưa phản hồi — đăng nhập bằng session demo.');
-        router.push(fallback.user.role === 'ADMIN' ? '/admin/dashboard' : '/profile');
-        return;
-      }
       setMessage(error instanceof Error ? error.message : 'Không thể đăng nhập. Kiểm tra lại thông tin.');
     } finally {
       setLoading(false);
