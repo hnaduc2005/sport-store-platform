@@ -4,8 +4,7 @@ import { NestFactory } from '@nestjs/core';
 import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { AppModule } from './app.module';
-
-const express = require('express');
+import * as express from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
