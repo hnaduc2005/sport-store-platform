@@ -12,6 +12,8 @@ export default function RegisterPage() {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
+  const [agreed, setAgreed] = useState(false);
+  const [modal, setModal] = useState<'terms' | 'privacy' | null>(null);
 
   const set = (k: keyof typeof form, v: string) => setForm(c => ({ ...c, [k]: v }));
 
@@ -111,13 +113,43 @@ export default function RegisterPage() {
               <p className="mt-1.5 text-xs text-brand-subtle">Mật khẩu phải có ít nhất 6 ký tự.</p>
             </div>
 
+            {/* Terms checkbox */}
+            <label className="flex items-start gap-2.5 cursor-pointer select-none">
+              <input
+                id="agree-terms"
+                type="checkbox"
+                checked={agreed}
+                onChange={e => setAgreed(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-brand-light accent-brand-black cursor-pointer flex-shrink-0"
+              />
+              <span className="text-sm text-brand-muted leading-snug">
+                Tôi đồng ý với{' '}
+                <button
+                  type="button"
+                  onClick={() => setModal('terms')}
+                  className="font-semibold text-accent hover:underline"
+                >
+                  Điều khoản sử dụng
+                </button>
+                {' '}và{' '}
+                <button
+                  type="button"
+                  onClick={() => setModal('privacy')}
+                  className="font-semibold text-accent hover:underline"
+                >
+                  Chính sách bảo mật
+                </button>
+                {' '}của T3Sport
+              </span>
+            </label>
+
             {message && (
               <div className="rounded-lg bg-danger-light border border-danger/20 px-3 py-2.5 text-sm text-danger-dark">
                 {message}
               </div>
             )}
 
-            <button disabled={loading} className="btn-dark w-full py-3.5 text-base font-bold mt-2 disabled:opacity-60">
+            <button disabled={loading || !agreed} className="btn-dark w-full py-3.5 text-base font-bold mt-2 disabled:opacity-50 disabled:cursor-not-allowed">
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
                   <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -138,6 +170,62 @@ export default function RegisterPage() {
           </p>
         </div>
       </div>
+
+      {/* Modal */}
+      {modal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4"
+          onClick={() => setModal(null)}
+        >
+          <div
+            className="w-full max-w-lg max-h-[80vh] overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Modal header */}
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-brand-black">
+                {modal === 'terms' ? 'Điều khoản sử dụng' : 'Chính sách bảo mật'}
+              </h2>
+              <button
+                onClick={() => setModal(null)}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-offwhite text-brand-muted hover:bg-brand-light transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal content */}
+            <div className="text-sm text-brand-muted space-y-3 leading-relaxed">
+              {modal === 'terms' ? (
+                <>
+                  <p><strong className="text-brand-black">1. Chấp nhận điều khoản</strong><br/>Khi sử dụng dịch vụ của T3Sport, bạn đồng ý tuân thủ các điều khoản và điều kiện được nêu trong tài liệu này.</p>
+                  <p><strong className="text-brand-black">2. Tài khoản người dùng</strong><br/>Bạn có trách nhiệm bảo mật thông tin đăng nhập và chịu trách nhiệm cho mọi hoạt động xảy ra dưới tài khoản của mình.</p>
+                  <p><strong className="text-brand-black">3. Sử dụng dịch vụ</strong><br/>Bạn cam kết sử dụng dịch vụ đúng mục đích, không thực hiện các hành vi gian lận, lừa đảo hoặc vi phạm pháp luật.</p>
+                  <p><strong className="text-brand-black">4. Đặt hàng & thanh toán</strong><br/>Mọi đơn hàng đặt qua T3Sport đều được xác nhận qua email. Chúng tôi có quyền từ chối hoặc hủy đơn hàng trong trường hợp có dấu hiệu gian lận.</p>
+                  <p><strong className="text-brand-black">5. Thay đổi điều khoản</strong><br/>T3Sport có quyền cập nhật điều khoản này bất kỳ lúc nào. Việc tiếp tục sử dụng dịch vụ đồng nghĩa với việc bạn chấp nhận các điều khoản mới.</p>
+                </>
+              ) : (
+                <>
+                  <p><strong className="text-brand-black">1. Thu thập thông tin</strong><br/>Chúng tôi thu thập họ tên, email và thông tin đơn hàng nhằm mục đích cung cấp và cải thiện dịch vụ cho bạn.</p>
+                  <p><strong className="text-brand-black">2. Sử dụng thông tin</strong><br/>Thông tin của bạn được sử dụng để xử lý đơn hàng, gửi thông báo liên quan và hỗ trợ khách hàng. Chúng tôi không bán thông tin cá nhân cho bên thứ ba.</p>
+                  <p><strong className="text-brand-black">3. Bảo mật dữ liệu</strong><br/>Dữ liệu của bạn được mã hóa và lưu trữ an toàn. Chúng tôi áp dụng các biện pháp kỹ thuật tiêu chuẩn để bảo vệ thông tin khỏi truy cập trái phép.</p>
+                  <p><strong className="text-brand-black">4. Cookie</strong><br/>Chúng tôi sử dụng cookie để duy trì phiên đăng nhập và cải thiện trải nghiệm người dùng. Bạn có thể tắt cookie trong cài đặt trình duyệt.</p>
+                  <p><strong className="text-brand-black">5. Quyền của bạn</strong><br/>Bạn có quyền yêu cầu xem, chỉnh sửa hoặc xóa thông tin cá nhân bằng cách liên hệ với chúng tôi qua trang Liên hệ.</p>
+                </>
+              )}
+            </div>
+
+            <button
+              onClick={() => { setAgreed(true); setModal(null); }}
+              className="mt-6 btn-dark w-full py-2.5 text-sm font-bold"
+            >
+              Tôi đã đọc và đồng ý
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
