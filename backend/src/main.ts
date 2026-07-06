@@ -4,10 +4,10 @@ import { NestFactory } from '@nestjs/core';
 import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { AppModule } from './app.module';
-import * as express from 'express';
+import { NestExpressApplication } from '@nestjs/platform-express';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const config = app.get(ConfigService);
   const frontendUrl = config.get<string>('FRONTEND_URL') ?? 'http://localhost:3000';
   const uploadsPath = join(process.cwd(), 'uploads');
@@ -17,7 +17,7 @@ async function bootstrap() {
   }
 
   app.setGlobalPrefix('api');
-  app.use('/uploads', express.static(uploadsPath));
+  app.useStaticAssets(uploadsPath, { prefix: '/uploads' });
   app.enableCors({
     origin: frontendUrl,
     credentials: true,

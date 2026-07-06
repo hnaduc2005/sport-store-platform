@@ -128,7 +128,7 @@ export function HomeClientPage() {
             {/* Left — headline */}
             <div className="max-w-3xl animate-fade-in">
               <span className="inline-block text-xs font-bold uppercase tracking-[0.2em] text-accent mb-4 border border-accent/40 rounded-full px-3 py-1">
-                BigSport Store — Premium Sports
+                T3Sport
               </span>
               <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black text-white leading-[1.05] tracking-tight">
                 Đỉnh cao
@@ -157,10 +157,43 @@ export function HomeClientPage() {
               </div>
               {/* Stats bar */}
               <div className="mt-12 flex flex-wrap gap-8">
-                {[['10K+', 'Khách hàng'], ['500+', 'Sản phẩm'], ['50+', 'Thương hiệu'], ['100%', 'Chính hãng']].map(([val, lbl]) => (
-                  <div key={lbl}>
-                    <p className="text-2xl font-black text-white">{val}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{lbl}</p>
+                {[
+                  {
+                    lbl: 'Khách hàng',
+                    icon: (
+                      <svg className="w-8 h-8 text-blue-400 drop-shadow-[0_0_12px_rgba(96,165,250,0.8)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                      </svg>
+                    )
+                  },
+                  {
+                    lbl: 'Sản phẩm',
+                    icon: (
+                      <svg className="w-8 h-8 text-purple-400 drop-shadow-[0_0_12px_rgba(192,132,252,0.8)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                      </svg>
+                    )
+                  },
+                  {
+                    lbl: 'Thương hiệu',
+                    icon: (
+                      <svg className="w-8 h-8 text-amber-400 drop-shadow-[0_0_12px_rgba(251,191,36,0.8)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                      </svg>
+                    )
+                  },
+                  {
+                    lbl: 'Chính hãng',
+                    icon: (
+                      <svg className="w-8 h-8 text-emerald-400 drop-shadow-[0_0_12px_rgba(52,211,153,0.8)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                      </svg>
+                    )
+                  }
+                ].map(({ lbl, icon }) => (
+                  <div key={lbl} className="flex flex-col items-center gap-1.5">
+                    {icon}
+                    <p className="text-[13px] font-medium text-gray-300 uppercase tracking-wider">{lbl}</p>
                   </div>
                 ))}
               </div>
