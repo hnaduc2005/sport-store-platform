@@ -162,11 +162,5 @@ URL mặc định:
 - Frontend: `http://localhost:3000`
 - Backend: `http://localhost:3001/api`
 
-## Gợi ý bước tiếp theo
-
-- Thêm hash password bằng `bcrypt` hoặc `argon2`.
-- Thêm JWT guard, role guard cho admin.
-- Viết DTO riêng cho create/update thay vì dùng trực tiếp Prisma input ở controller.
-- Kết nối các form frontend với API thật.
 - Thêm phân trang, tìm kiếm, upload ảnh sản phẩm và checkout flow.
 
